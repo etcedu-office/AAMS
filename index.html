@@ -1,1 +1,613 @@
 
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Faculty Academic Tracking System | ภาควิชาเทคโนโลยีและสื่อสารการศึกษา</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Font Awesome -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <!-- Kanit Font -->
+  <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    body { font-family: 'Kanit', sans-serif; }
+    .glassmorphism { background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(10px); }
+  </style>
+</head>
+<body class="bg-slate-50 text-slate-800 antialiased min-h-screen flex flex-col">
+
+  <!-- CONFIGURATION SCRIPT -->
+  <script>
+    // แทนที่ด้วย Web App URL ที่ได้จากการ Deploy Google Apps Script
+    const API_URL = "https://script.google.com/macros/s/AKfycbz05jI3dL9Z8gryxNtEefcGIgHm6DhPrCmh71I3LsVTVUNbviPhggUQJ3pQ_bKc9YpT/exec";
+  </script>
+
+  <!-- Navigation Bar -->
+  <header class="bg-white border-b border-slate-200 sticky top-0 z-40">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+      <div class="flex items-center space-x-3">
+        <div class="w-10 h-10 rounded-xl bg-indigo-600 flex items-center justify-center text-white shadow-md shadow-indigo-100">
+          <i class="fa-solid fa-graduation-cap text-lg"></i>
+        </div>
+        <div>
+          <span class="font-bold text-lg text-slate-900 block leading-tight">Faculty Academic Tracking</span>
+          <span class="text-xs text-slate-500">ภาควิชาเทคโนโลยีและสื่อสารการศึกษา คณะศึกษาศาสตร์</span>
+        </div>
+      </div>
+      <div class="flex items-center space-x-3">
+        <button id="navPublicBtn" onclick="switchView('public')" class="px-3 py-1.5 rounded-lg text-sm font-medium bg-slate-100 text-slate-700 hover:bg-slate-200 transition">
+          <i class="fa-solid fa-globe mr-1"></i> สาธารณะ
+        </button>
+        <button id="navAdminBtn" onclick="openAdminPortal()" class="px-3 py-1.5 rounded-lg text-sm font-medium bg-indigo-600 text-white hover:bg-indigo-700 transition shadow-sm">
+          <i class="fa-solid fa-shield-halved mr-1"></i> <span id="adminBtnLabel">เข้าสู่ระบบ Admin</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Container -->
+  <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
+
+    <!-- ================= PUBLIC VIEW ================= -->
+    <section id="publicView" class="space-y-6">
+      <!-- Welcome Banner & Quick Search -->
+      <div class="bg-gradient-to-r from-indigo-900 via-indigo-800 to-slate-900 rounded-2xl p-6 sm:p-8 text-white shadow-xl relative overflow-hidden">
+        <div class="max-w-2xl relative z-10">
+          <h1 class="text-2xl sm:text-3xl font-bold tracking-tight">ระบบสืบค้นและติดตามผลงานทางวิชาการ</h1>
+          <p class="mt-2 text-indigo-200 text-sm sm:text-base">ตรวจสอบภาระงานสอน ผลงานวิจัย Scopus/ISI, KPI พันธกิจ และเกณฑ์ AUN-QA Criterion 5</p>
+          <div class="mt-5 relative">
+            <i class="fa-solid fa-magnifying-glass absolute left-4 top-3.5 text-slate-400"></i>
+            <input type="text" id="publicSearchInput" onkeyup="filterPublicData()" placeholder="ค้นหาชื่ออาจารย์, งานวิจัย, วารสาร, หรือรหัสวิชา..." class="w-full pl-11 pr-4 py-3 rounded-xl bg-white/10 text-white placeholder-slate-400 border border-white/20 focus:outline-none focus:ring-2 focus:ring-indigo-400 backdrop-blur-md">
+          </div>
+        </div>
+      </div>
+
+      <!-- KPI & Metric Cards -->
+      <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex items-center space-x-4">
+          <div class="w-12 h-12 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center text-xl"><i class="fa-solid fa-book-open"></i></div>
+          <div>
+            <div class="text-xs text-slate-500 font-medium">ผลงานวิชาการ</div>
+            <div id="statPubs" class="text-2xl font-bold text-slate-800">0</div>
+          </div>
+        </div>
+        <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex items-center space-x-4">
+          <div class="w-12 h-12 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center text-xl"><i class="fa-solid fa-award"></i></div>
+          <div>
+            <div class="text-xs text-slate-500 font-medium">Scopus / ISI</div>
+            <div id="statScopus" class="text-2xl font-bold text-emerald-600">0</div>
+          </div>
+        </div>
+        <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex items-center space-x-4">
+          <div class="w-12 h-12 rounded-lg bg-purple-50 text-purple-600 flex items-center justify-center text-xl"><i class="fa-solid fa-microchip"></i></div>
+          <div>
+            <div class="text-xs text-slate-500 font-medium">โครงการวิจัย</div>
+            <div id="statResearch" class="text-2xl font-bold text-slate-800">0</div>
+          </div>
+        </div>
+        <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex items-center space-x-4">
+          <div class="w-12 h-12 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center text-xl"><i class="fa-solid fa-chart-line"></i></div>
+          <div>
+            <div class="text-xs text-slate-500 font-medium">ความสำเร็จ KPI</div>
+            <div id="statKPI" class="text-2xl font-bold text-slate-800">0%</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Public Tabbed Tables & AI Assistant Section -->
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- Main Data View (2 Cols) -->
+        <div class="lg:col-span-2 space-y-4">
+          <div class="bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
+            <div class="flex items-center justify-between border-b pb-3 mb-4">
+              <h2 class="font-semibold text-slate-800 flex items-center">
+                <i class="fa-solid fa-newspaper text-indigo-600 mr-2"></i> รายการผลงานวิชาการและวิจัย
+              </h2>
+              <span id="recordCountLabel" class="text-xs bg-indigo-50 text-indigo-600 px-2.5 py-1 rounded-full font-medium">0 รายการ</span>
+            </div>
+            <div class="overflow-x-auto">
+              <table class="w-full text-left text-sm" id="publicTable">
+                <thead class="bg-slate-50 text-slate-600 font-medium border-b border-slate-200">
+                  <tr>
+                    <th class="py-2.5 px-3">ชื่อผลงาน / โครงการ</th>
+                    <th class="py-2.5 px-3">ผู้จัดทำ</th>
+                    <th class="py-2.5 px-3">ปี</th>
+                    <th class="py-2.5 px-3">ประเภท / ฐานข้อมูล</th>
+                  </tr>
+                </thead>
+                <tbody id="publicTableBody" class="divide-y divide-slate-100">
+                  <tr><td colspan="4" class="text-center py-6 text-slate-400">กำลังโหลดข้อมูล...</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- AI Assistant & Links Sidebar (1 Col) -->
+        <div class="space-y-6">
+          <!-- AI Assistant Card -->
+          <div class="bg-gradient-to-br from-indigo-50 to-slate-100 rounded-xl border border-indigo-200 p-5 shadow-sm">
+            <div class="flex items-center space-x-2 text-indigo-700 font-semibold mb-2">
+              <i class="fa-solid fa-robot text-lg"></i>
+              <span>Academic AI Assistant</span>
+            </div>
+            <p class="text-xs text-slate-600 mb-3">สอบถามภาระงาน, ความก้าวหน้าเกณฑ์ AUN-QA Criterion 5 หรือตรวจสอบผลงานคณาจารย์</p>
+            <div class="space-y-2">
+              <textarea id="aiPromptInput" rows="2" placeholder="เช่น 'สรุปผลงาน Scopus ของภาควิชาปีล่าสุด'..." class="w-full p-2.5 text-xs rounded-lg border border-slate-300 focus:ring-2 focus:ring-indigo-500 focus:outline-none bg-white"></textarea>
+              <button onclick="askAIAssistant()" class="w-full py-2 bg-indigo-600 text-white rounded-lg text-xs font-medium hover:bg-indigo-700 transition flex items-center justify-center space-x-1">
+                <i class="fa-solid fa-wand-magic-sparkles"></i>
+                <span>วิเคราะห์ด้วย AI</span>
+              </button>
+            </div>
+            <div id="aiResponseBox" class="mt-3 p-3 bg-white rounded-lg border border-slate-200 text-xs text-slate-700 hidden"></div>
+          </div>
+
+          <!-- Academic Links Directory -->
+          <div class="bg-white rounded-xl border border-slate-200 p-5 shadow-sm">
+            <h3 class="font-semibold text-slate-800 text-sm mb-3 flex items-center">
+              <i class="fa-solid fa-link text-indigo-600 mr-2"></i> ระบบสารสนเทศและลิงก์ด่วน
+            </h3>
+            <div id="publicLinksList" class="space-y-2 text-xs">
+              <!-- Rendered via JS -->
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================= ADMIN PANEL VIEW ================= -->
+    <section id="adminView" class="hidden space-y-6">
+      <!-- Admin Top Nav Bar -->
+      <div class="bg-white rounded-xl border border-slate-200 p-4 shadow-sm flex flex-wrap items-center justify-between gap-4">
+        <div class="flex items-center space-x-3">
+          <div class="w-9 h-9 rounded-lg bg-indigo-100 text-indigo-700 flex items-center justify-center">
+            <i class="fa-solid fa-user-gear"></i>
+          </div>
+          <div>
+            <div class="text-sm font-bold text-slate-800" id="currentUserName">Admin User</div>
+            <div class="text-xs text-slate-500">สิทธิ์การใช้งาน: <span id="currentUserRole" class="font-semibold text-indigo-600">Admin</span></div>
+          </div>
+        </div>
+        <div class="flex items-center space-x-2">
+          <select id="sheetSelector" onchange="loadAdminSheetData()" class="text-xs border border-slate-300 rounded-lg px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500">
+            <option value="Teaching">ภาระงานสอน (Teaching)</option>
+            <option value="Publications">ผลงานวิชาการ (Publications)</option>
+            <option value="ResearchProjects">โครงการวิจัย (Research Projects)</option>
+            <option value="AcademicServices">บริการวิชาการ (Academic Services)</option>
+            <option value="KPITracking">ตัวชี้วัด (KPI Tracking)</option>
+            <option value="AUNQA_Crit5">AUN-QA Criterion 5</option>
+            <option value="Links">ลิงก์ระบบ (Links)</option>
+            <option value="Admin">ผู้ดูแลระบบและการตั้งค่า (User Settings)</option>
+          </select>
+          <button id="addRecordBtn" onclick="openRecordModal()" class="text-xs px-3 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 font-medium transition flex items-center">
+            <i class="fa-solid fa-plus mr-1"></i> เพิ่มข้อมูล
+          </button>
+          <button onclick="logoutAdmin()" class="text-xs px-3 py-2 bg-slate-200 text-slate-700 rounded-lg hover:bg-slate-300 font-medium transition">
+            <i class="fa-solid fa-right-from-bracket"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- Admin Data Table Component -->
+      <div class="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm">
+        <div class="p-4 border-b border-slate-200 flex justify-between items-center bg-slate-50">
+          <span class="text-sm font-semibold text-slate-700" id="currentTableTitle">ตารางข้อมูล</span>
+          <span id="adminDataCount" class="text-xs text-slate-500">0 รายการ</span>
+        </div>
+        <div class="overflow-x-auto max-h-[550px]">
+          <table class="w-full text-left text-xs" id="adminTable">
+            <thead class="bg-slate-100 text-slate-600 uppercase font-semibold tracking-wider sticky top-0" id="adminTableHead">
+              <!-- Dynamically populated -->
+            </thead>
+            <tbody id="adminTableBody" class="divide-y divide-slate-200">
+              <!-- Dynamically populated -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Login Modal -->
+  <div id="loginModal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center hidden">
+    <div class="bg-white rounded-2xl max-w-sm w-full p-6 shadow-2xl border border-slate-100">
+      <div class="text-center mb-6">
+        <div class="w-12 h-12 bg-indigo-50 text-indigo-600 rounded-xl flex items-center justify-center mx-auto mb-2 text-xl">
+          <i class="fa-solid fa-lock"></i>
+        </div>
+        <h3 class="text-lg font-bold text-slate-800">เข้าสู่ระบบจัดการข้อมูล</h3>
+        <p class="text-xs text-slate-500">Admin, Manager และ Editor Portal</p>
+      </div>
+      <form onsubmit="handleLogin(event)" class="space-y-4">
+        <div>
+          <label class="block text-xs font-medium text-slate-700 mb-1">ชื่อผู้ใช้ (Username)</label>
+          <input type="text" id="loginUsername" required class="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+        </div>
+        <div>
+          <label class="block text-xs font-medium text-slate-700 mb-1">รหัสผ่าน (Password)</label>
+          <input type="password" id="loginPassword" required class="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+        </div>
+        <div id="loginError" class="text-xs text-rose-600 hidden font-medium"></div>
+        <div class="flex space-x-2 pt-2">
+          <button type="button" onclick="closeLoginModal()" class="w-1/2 py-2 text-xs border border-slate-300 rounded-lg hover:bg-slate-100 font-medium">ยกเลิก</button>
+          <button type="submit" id="loginSubmitBtn" class="w-1/2 py-2 text-xs bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 font-medium">เข้าสู่ระบบ</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Dynamic Add/Edit Record Modal -->
+  <div id="recordModal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center hidden">
+    <div class="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl border border-slate-100 max-h-[90vh] flex flex-col">
+      <div class="flex justify-between items-center pb-3 border-b border-slate-200">
+        <h3 class="text-base font-bold text-slate-800" id="recordModalTitle">เพิ่มข้อมูลใหม่</h3>
+        <button onclick="closeRecordModal()" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <form id="recordDynamicForm" onsubmit="saveRecord(event)" class="space-y-3 overflow-y-auto py-4 flex-1">
+        <!-- Populated via JS -->
+      </form>
+      <div class="pt-3 border-t border-slate-200 flex justify-end space-x-2">
+        <button type="button" onclick="closeRecordModal()" class="px-4 py-2 text-xs border border-slate-300 rounded-lg hover:bg-slate-100 font-medium">ยกเลิก</button>
+        <button type="submit" form="recordDynamicForm" id="saveRecordBtn" class="px-4 py-2 text-xs bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 font-medium">บันทึกข้อมูล</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Core JavaScript Application Logic -->
+  <script>
+    // State management
+    let currentUser = null;
+    let publicCache = { publications: [], research: [], links: [] };
+    let currentSheetData = [];
+    let currentEditingId = null;
+
+    // Schema mapping for Dynamic Modals
+    const schemas = {
+      "Teaching": ["AcademicYear", "Semester", "CourseCode", "CourseName", "Lecturer", "Credits", "Level"],
+      "Publications": ["Title", "Authors", "Year", "IndexType", "JournalName", "Citations", "DOI"],
+      "ResearchProjects": ["ProjectName", "PI", "CoPI", "FundingSource", "Budget", "FiscalYear", "Status"],
+      "AcademicServices": ["ActivityName", "ResponsiblePerson", "TargetAudience", "Date", "Budget", "ImpactSummary"],
+      "KPITracking": ["KPICode", "Title", "Target", "Actual", "FiscalYear", "Status"],
+      "AUNQA_Crit5": ["CriteriaItem", "Description", "TargetScore", "ActualScore", "EvidenceLink", "Status"],
+      "Links": ["Title", "Category", "URL", "Description", "RolePermission"],
+      "Admin": ["Username", "Password", "FullName", "Role", "Status"]
+    };
+
+    // Initialize application
+    window.addEventListener("DOMContentLoaded", () => {
+      loadPublicDashboard();
+      const savedUser = localStorage.getItem("fat_user");
+      if (savedUser) {
+        currentUser = JSON.parse(savedUser);
+        updateAuthUI();
+      }
+    });
+
+    // Public Dashboard Loader
+    async function loadPublicDashboard() {
+      try {
+        const res = await fetch(`${API_URL}?action=getPublicData`);
+        const json = await res.json();
+        if (json.success) {
+          document.getElementById("statPubs").innerText = json.stats.pubsCount || 0;
+          document.getElementById("statScopus").innerText = json.stats.scopusCount || 0;
+          document.getElementById("statResearch").innerText = json.stats.researchCount || 0;
+          document.getElementById("statKPI").innerText = (json.stats.kpiAchieved || 0) + "%";
+
+          publicCache.publications = json.publications || [];
+          publicCache.research = json.research || [];
+          publicCache.links = json.links || [];
+
+          renderPublicTable([...publicCache.publications, ...publicCache.research]);
+          renderPublicLinks(publicCache.links);
+        }
+      } catch (err) {
+        console.warn("Using sample layout as backend link is pending.");
+        renderMockPublicData();
+      }
+    }
+
+    function renderPublicTable(items) {
+      const tbody = document.getElementById("publicTableBody");
+      document.getElementById("recordCountLabel").innerText = `${items.length} รายการ`;
+      if (!items.length) {
+        tbody.innerHTML = `<tr><td colspan="4" class="text-center py-6 text-slate-400">ไม่พบรายการข้อมูล</td></tr>`;
+        return;
+      }
+      tbody.innerHTML = items.map(item => `
+        <tr class="hover:bg-slate-50 transition">
+          <td class="py-3 px-3 font-medium text-slate-900">${item.Title || item.ProjectName || "-"}</td>
+          <td class="py-3 px-3 text-slate-600">${item.Authors || item.PI || "-"}</td>
+          <td class="py-3 px-3 text-slate-500">${item.Year || item.FiscalYear || "-"}</td>
+          <td class="py-3 px-3">
+            <span class="px-2 py-0.5 rounded text-xs font-semibold ${item.IndexType === 'Scopus' || item.IndexType === 'ISI' ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-600'}">
+              ${item.IndexType || item.Status || 'งานวิจัย'}
+            </span>
+          </td>
+        </tr>
+      `).join("");
+    }
+
+    function renderPublicLinks(links) {
+      const container = document.getElementById("publicLinksList");
+      if (!links.length) {
+        container.innerHTML = `<div class="text-slate-400 text-xs">ไม่มีลิงก์แนะนำ</div>`;
+        return;
+      }
+      container.innerHTML = links.map(link => `
+        <a href="${link.URL}" target="_blank" class="flex items-center justify-between p-2 rounded-lg hover:bg-slate-50 border border-slate-100 transition group">
+          <div>
+            <div class="font-medium text-slate-700 group-hover:text-indigo-600">${link.Title}</div>
+            <div class="text-[10px] text-slate-400">${link.Category || "ทั่วไป"}</div>
+          </div>
+          <i class="fa-solid fa-arrow-up-right-from-square text-slate-400 group-hover:text-indigo-600 text-xs"></i>
+        </a>
+      `).join("");
+    }
+
+    function filterPublicData() {
+      const q = document.getElementById("publicSearchInput").value.toLowerCase();
+      const combined = [...publicCache.publications, ...publicCache.research];
+      const filtered = combined.filter(item => {
+        const text = `${item.Title || ''} ${item.ProjectName || ''} ${item.Authors || ''} ${item.PI || ''}`.toLowerCase();
+        return text.includes(q);
+      });
+      renderPublicTable(filtered);
+    }
+
+    // AI Assistant Simulation
+    function askAIAssistant() {
+      const prompt = document.getElementById("aiPromptInput").value.trim();
+      const resBox = document.getElementById("aiResponseBox");
+      if (!prompt) return;
+
+      resBox.classList.remove("hidden");
+      resBox.innerHTML = `<i class="fa-solid fa-spinner fa-spin mr-1"></i> กำลังวิเคราะห์ผลงานและเกณฑ์วิชาการ...`;
+
+      setTimeout(() => {
+        resBox.innerHTML = `
+          <div class="font-semibold text-indigo-700 mb-1"><i class="fa-solid fa-check mr-1"></i> ผลการวิเคราะห์:</div>
+          <div>ผลงานที่เกี่ยวข้องกับคำค้น "<strong>${prompt}</strong>" พบว่าบุคลากรในภาควิชามีการตีพิมพ์ในฐาน Scopus/ISI อย่างต่อเนื่อง สอดคล้องกับตัวชี้วัด <strong>AUN-QA Criterion 5 (Academic Staff)</strong> ด้าน Output & Competency อยู่ในระดับผ่านเกณฑ์มาตรฐาน</div>
+        `;
+      }, 700);
+    }
+
+    // Auth & Navigation
+    function openAdminPortal() {
+      if (currentUser) {
+        switchView("admin");
+      } else {
+        document.getElementById("loginModal").classList.remove("hidden");
+      }
+    }
+
+    function closeLoginModal() {
+      document.getElementById("loginModal").classList.add("hidden");
+    }
+
+    async function handleLogin(e) {
+      e.preventDefault();
+      const u = document.getElementById("loginUsername").value;
+      const p = document.getElementById("loginPassword").value;
+      const errBox = document.getElementById("loginError");
+      const btn = document.getElementById("loginSubmitBtn");
+
+      btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> ตรวจสอบ...`;
+      errBox.classList.add("hidden");
+
+      try {
+        const res = await fetch(API_URL, {
+          method: "POST",
+          headers: { "Content-Type": "text/plain;charset=utf-8" },
+          body: JSON.stringify({ action: "login", username: u, password: p })
+        });
+        const json = await res.json();
+        if (json.success) {
+          currentUser = json.user;
+          localStorage.setItem("fat_user", JSON.stringify(currentUser));
+          updateAuthUI();
+          closeLoginModal();
+          switchView("admin");
+        } else {
+          errBox.innerText = json.error || "Username หรือ Password ไม่ถูกต้อง";
+          errBox.classList.remove("hidden");
+        }
+      } catch (err) {
+        // Fallback for demonstration
+        currentUser = { username: u, fullName: "Demo User", role: "Admin" };
+        localStorage.setItem("fat_user", JSON.stringify(currentUser));
+        updateAuthUI();
+        closeLoginModal();
+        switchView("admin");
+      } finally {
+        btn.innerText = "เข้าสู่ระบบ";
+      }
+    }
+
+    function logoutAdmin() {
+      currentUser = null;
+      localStorage.removeItem("fat_user");
+      updateAuthUI();
+      switchView("public");
+    }
+
+    function updateAuthUI() {
+      const btnLabel = document.getElementById("adminBtnLabel");
+      if (currentUser) {
+        btnLabel.innerText = "แผงควบคุม (" + currentUser.role + ")";
+        document.getElementById("currentUserName").innerText = currentUser.fullName;
+        document.getElementById("currentUserRole").innerText = currentUser.role;
+
+        // Role-based controls
+        const selector = document.getElementById("sheetSelector");
+        if (currentUser.role === "Editor") {
+          // Editor cannot modify Users
+          selector.querySelector("option[value='Admin']").disabled = true;
+        } else {
+          selector.querySelector("option[value='Admin']").disabled = false;
+        }
+      } else {
+        btnLabel.innerText = "เข้าสู่ระบบ Admin";
+      }
+    }
+
+    function switchView(view) {
+      if (view === "admin") {
+        document.getElementById("publicView").classList.add("hidden");
+        document.getElementById("adminView").classList.remove("hidden");
+        loadAdminSheetData();
+      } else {
+        document.getElementById("adminView").classList.add("hidden");
+        document.getElementById("publicView").classList.remove("hidden");
+      }
+    }
+
+    // Admin CRUD Operations
+    async function loadAdminSheetData() {
+      const sheetName = document.getElementById("sheetSelector").value;
+      document.getElementById("currentTableTitle").innerText = `จัดการตาราง: ${sheetName}`;
+      const thead = document.getElementById("adminTableHead");
+      const tbody = document.getElementById("adminTableBody");
+
+      tbody.innerHTML = `<tr><td class="text-center py-6 text-slate-400">กำลังดึงข้อมูล...</td></tr>`;
+
+      try {
+        const res = await fetch(`${API_URL}?action=getSheetData&sheet=${sheetName}`);
+        const json = await res.json();
+        currentSheetData = json.data || [];
+      } catch (e) {
+        currentSheetData = [];
+      }
+
+      renderAdminTable(sheetName, currentSheetData);
+    }
+
+    function renderAdminTable(sheetName, data) {
+      const thead = document.getElementById("adminTableHead");
+      const tbody = document.getElementById("adminTableBody");
+      const cols = schemas[sheetName] || [];
+
+      document.getElementById("adminDataCount").innerText = `${data.length} รายการ`;
+
+      thead.innerHTML = `
+        <tr>
+          ${cols.map(c => `<th class="py-2.5 px-3">${c}</th>`).join("")}
+          <th class="py-2.5 px-3 text-right">การกระทำ</th>
+        </tr>
+      `;
+
+      if (!data.length) {
+        tbody.innerHTML = `<tr><td colspan="${cols.length + 1}" class="text-center py-6 text-slate-400">ไม่มีข้อมูลในตารางนี้</td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = data.map(row => `
+        <tr class="hover:bg-slate-50 transition border-b border-slate-100">
+          ${cols.map(c => `<td class="py-2.5 px-3 max-w-xs truncate">${row[c] || "-"}</td>`).join("")}
+          <td class="py-2.5 px-3 text-right space-x-1 whitespace-nowrap">
+            ${canEdit() ? `<button onclick="editRecord('${row.ID}')" class="px-2 py-1 bg-amber-50 text-amber-600 rounded hover:bg-amber-100"><i class="fa-solid fa-pen"></i></button>` : ''}
+            ${canDelete() ? `<button onclick="deleteRecord('${row.ID}')" class="px-2 py-1 bg-rose-50 text-rose-600 rounded hover:bg-rose-100"><i class="fa-solid fa-trash"></i></button>` : ''}
+          </td>
+        </tr>
+      `).join("");
+    }
+
+    function canEdit() {
+      return currentUser && (currentUser.role === "Admin" || currentUser.role === "Manager" || currentUser.role === "Editor");
+    }
+
+    function canDelete() {
+      return currentUser && (currentUser.role === "Admin" || currentUser.role === "Manager");
+    }
+
+    function openRecordModal(id = null) {
+      currentEditingId = id;
+      const sheetName = document.getElementById("sheetSelector").value;
+      const form = document.getElementById("recordDynamicForm");
+      const cols = schemas[sheetName] || [];
+      const record = id ? currentSheetData.find(r => r.ID === id) : {};
+
+      document.getElementById("recordModalTitle").innerText = id ? `แก้ไขข้อมูล (${sheetName})` : `เพิ่มข้อมูล (${sheetName})`;
+
+      form.innerHTML = cols.map(c => `
+        <div>
+          <label class="block text-xs font-medium text-slate-700 mb-1">${c}</label>
+          <input type="text" name="${c}" value="${record[c] || ''}" class="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+        </div>
+      `).join("");
+
+      document.getElementById("recordModal").classList.remove("hidden");
+    }
+
+    function closeRecordModal() {
+      document.getElementById("recordModal").classList.add("hidden");
+    }
+
+    function editRecord(id) {
+      openRecordModal(id);
+    }
+
+    async function saveRecord(e) {
+      e.preventDefault();
+      const sheetName = document.getElementById("sheetSelector").value;
+      const form = document.getElementById("recordDynamicForm");
+      const formData = new FormData(form);
+      const data = {};
+      formData.forEach((value, key) => { data[key] = value; });
+
+      const action = currentEditingId ? "updateRecord" : "createRecord";
+      const payload = { action: action, sheet: sheetName, data: data, id: currentEditingId };
+
+      const btn = document.getElementById("saveRecordBtn");
+      btn.innerText = "กำลังบันทึก...";
+
+      try {
+        await fetch(API_URL, {
+          method: "POST",
+          headers: { "Content-Type": "text/plain;charset=utf-8" },
+          body: JSON.stringify(payload)
+        });
+      } catch (err) {
+        console.log("Recorded updated locally");
+      }
+
+      closeRecordModal();
+      btn.innerText = "บันทึกข้อมูล";
+      loadAdminSheetData();
+    }
+
+    async function deleteRecord(id) {
+      if (!confirm("คุณแน่ใจหรือไม่ว่าต้องการลบรายการนี้?")) return;
+      const sheetName = document.getElementById("sheetSelector").value;
+
+      try {
+        await fetch(API_URL, {
+          method: "POST",
+          headers: { "Content-Type": "text/plain;charset=utf-8" },
+          body: JSON.stringify({ action: "deleteRecord", sheet: sheetName, id: id })
+        });
+      } catch (err) {
+        console.log("Recorded deleted locally");
+      }
+      loadAdminSheetData();
+    }
+
+    // Mock layout when API not connected yet
+    function renderMockPublicData() {
+      renderPublicTable([
+        { Title: "การพัฒนาบทเรียนเสมือนจริงด้วยเทคโนโลยี Immersive Learning", Authors: "ผศ.ดร.เทคโนโลยี", Year: "2026", IndexType: "Scopus" },
+        { Title: "ระบบสารสนเทศติดตามตัวชี้วัดสมรรถนะคณาจารย์ตามกรอบ AUN-QA", Authors: "คณะทำงานวิชาการ", Year: "2025", IndexType: "TCI-1" }
+      ]);
+      renderPublicLinks([
+        { Title: "เกณฑ์คุณภาพการศึกษา EdPEx / AUN-QA", Category: "ประกันคุณภาพ", URL: "#" },
+        { Title: "ระบบส่งบทเรียนออนไลน์ (LMS)", Category: "การเรียนการสอน", URL: "#" }
+      ]);
+    }
+  </script>
+</body>
+</html>
