@@ -1,3 +1,1042 @@
 <!DOCTYPE html>
-<html><head><meta http-equiv="refresh" content="0; url=https://script.google.com/macros/s/AKfycbxjg7HVZACqFfqm1BHGKwWxGF9ENRGVg2PIwZ84Bh0AxCV_fCxU643xPEw4buUx-_3T/exec"></head>
-<body>กำลังโหลด...</body></html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ระบบฐานข้อมูลอาจารย์ | ภาควิชาเทคโนโลยีและสื่อสารการศึกษา มมส.</title>
+
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+<style>
+  *{font-family:'Sarabun',sans-serif}
+  .hidden{display:none!important}
+  .nav-on{background:#1d4ed8;color:#fff}
+  ::-webkit-scrollbar{width:8px;height:8px}
+  ::-webkit-scrollbar-thumb{background:#cbd5e1;border-radius:8px}
+  .fade{animation:f .3s ease}
+  @keyframes f{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+</style>
+</head>
+
+<body class="bg-slate-100 text-slate-800">
+
+<script>
+/* =====================================================================
+ * ⭐ จุดที่ 2: วาง URL ของ Google Apps Script Web App ตรงนี้
+ * ต้องเป็น URL ที่ลงท้ายด้วย /exec เท่านั้น
+ * ตัวอย่าง:
+ * const API_URL = 'https://script.google.com/macros/s/AKfycby0uefQO46zWkYEnC4y8F9ITXhFbKdF7NMeyH_XSrYnX8fRmdhO1OL2EY3x7Lvk_cbe4Q/exec';
+ * ===================================================================== */
+const API_URL = 'วาง_URL_WEB_APP_ที่ลงท้ายด้วย_exec_ตรงนี้';
+</script>
+
+<!-- ============ LOADING ============ -->
+<div id="loader" class="fixed inset-0 z-[100] flex items-center justify-center bg-white/80 hidden">
+  <div class="h-12 w-12 animate-spin rounded-full border-4 border-blue-600 border-t-transparent"></div>
+</div>
+
+<!-- ============ TOAST ============ -->
+<div id="toast" class="fixed right-5 top-5 z-[110] space-y-2"></div>
+
+<!-- ============ PUBLIC PAGE ============ -->
+<div id="pubPage">
+  <header class="bg-gradient-to-r from-blue-950 via-blue-800 to-cyan-700 text-white shadow-lg">
+    <div class="mx-auto flex max-w-7xl items-center justify-between gap-4 px-5 py-4">
+      <div class="flex items-center gap-3">
+        <div class="flex h-11 w-11 items-center justify-center rounded-xl bg-white/20 text-2xl">🎓</div>
+        <div>
+          <h1 class="text-lg font-bold leading-tight">ระบบฐานข้อมูลอาจารย์</h1>
+          <p class="text-xs text-blue-100">ภาควิชาเทคโนโลยีและสื่อสารการศึกษา คณะศึกษาศาสตร์ มมส.</p>
+        </div>
+      </div>
+      <button onclick="openLogin()" class="rounded-xl bg-white px-5 py-2.5 text-sm font-semibold text-blue-800 shadow hover:bg-blue-50">เข้าสู่ระบบ</button>
+    </div>
+  </header>
+
+  <main class="mx-auto max-w-7xl px-5 py-8">
+    <section class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div class="rounded-2xl bg-gradient-to-br from-blue-700 to-blue-950 p-5 text-white shadow">
+        <p class="text-sm opacity-80">อาจารย์ในระบบ</p><p id="pTeachers" class="mt-1 text-3xl font-bold">0</p>
+      </div>
+      <div class="rounded-2xl bg-gradient-to-br from-emerald-600 to-emerald-800 p-5 text-white shadow">
+        <p class="text-sm opacity-80">ผลงานที่เผยแพร่</p><p id="pWorks" class="mt-1 text-3xl font-bold">0</p>
+      </div>
+      <div class="rounded-2xl bg-gradient-to-br from-violet-600 to-purple-800 p-5 text-white shadow">
+        <p class="text-sm opacity-80">ชั่วโมงสอนรวม</p><p id="pHours" class="mt-1 text-3xl font-bold">0</p>
+      </div>
+      <div class="rounded-2xl bg-gradient-to-br from-amber-500 to-orange-600 p-5 text-white shadow">
+        <p class="text-sm opacity-80">รายวิชาที่เปิดสอน</p><p id="pCourses" class="mt-1 text-3xl font-bold">0</p>
+      </div>
+    </section>
+
+    <div id="pNotices" class="mt-6 space-y-2"></div>
+
+    <section class="mt-8 grid gap-6 lg:grid-cols-3">
+      <div class="rounded-2xl bg-white p-5 shadow-sm lg:col-span-2">
+        <h3 class="mb-4 font-bold">ผลงานวิชาการจำแนกตามปี</h3>
+        <canvas id="pChartYear" height="120"></canvas>
+      </div>
+      <div class="rounded-2xl bg-white p-5 shadow-sm">
+        <h3 class="mb-4 font-bold">จำแนกตามประเภท</h3>
+        <canvas id="pChartType" height="180"></canvas>
+      </div>
+    </section>
+
+    <section class="mt-8">
+      <div class="mb-4 flex flex-col justify-between gap-3 md:flex-row md:items-end">
+        <div>
+          <h2 class="text-2xl font-bold">ทำเนียบอาจารย์</h2>
+          <p class="text-sm text-slate-500">ค้นหาด้วยชื่อ ตำแหน่งวิชาการ หรือความเชี่ยวชาญ</p>
+        </div>
+        <div class="relative w-full md:w-96">
+          <input id="pSearch" onkeyup="debouncePublic()" class="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 pl-11 shadow-sm outline-none focus:border-blue-600" placeholder="ค้นหาข้อมูลอาจารย์...">
+          <span class="absolute left-4 top-3.5 text-slate-400">🔍</span>
+        </div>
+      </div>
+      <div id="pList" class="grid gap-4 md:grid-cols-2 xl:grid-cols-3"></div>
+    </section>
+
+    <section class="mt-8 grid gap-6 lg:grid-cols-2">
+      <div class="rounded-2xl bg-white p-5 shadow-sm">
+        <h3 class="mb-4 font-bold">ผลงานวิชาการล่าสุด</h3>
+        <div id="pRecent" class="space-y-3"></div>
+      </div>
+
+      <div class="rounded-2xl border border-blue-100 bg-gradient-to-br from-blue-50 to-white p-5 shadow-sm">
+        <div class="mb-3 flex items-center gap-2">
+          <span class="text-2xl">🤖</span>
+          <h3 class="font-bold">AI Assistant</h3>
+        </div>
+        <div id="pAiBox" class="mb-3 max-h-64 min-h-[7rem] overflow-y-auto whitespace-pre-wrap rounded-xl bg-white p-4 text-sm text-slate-600 shadow-inner">
+สอบถามข้อมูลเกี่ยวกับอาจารย์ ความเชี่ยวชาญ หรือผลงานวิชาการของภาควิชาได้เลยครับ
+        </div>
+        <div class="flex gap-2">
+          <input id="pAiQ" onkeydown="if(event.key==='Enter')publicAsk()" class="w-full rounded-xl border px-3 py-2.5 text-sm outline-none focus:border-blue-600" placeholder="เช่น อาจารย์ท่านใดเชี่ยวชาญด้านสื่อดิจิทัล">
+          <button onclick="publicAsk()" class="rounded-xl bg-blue-700 px-5 py-2.5 text-sm font-medium text-white hover:bg-blue-800">ถาม</button>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="mt-10 bg-blue-950 py-6 text-center text-sm text-blue-100">
+    ภาควิชาเทคโนโลยีและสื่อสารการศึกษา คณะศึกษาศาสตร์ มหาวิทยาลัยมหาสารคาม
+  </footer>
+</div>
+
+<!-- ============ LOGIN ============ -->
+<div id="loginPage" class="fixed inset-0 z-50 hidden items-center justify-center bg-gradient-to-br from-blue-950 via-blue-800 to-cyan-700 p-4">
+  <div class="w-full max-w-md rounded-3xl bg-white p-8 shadow-2xl">
+    <button onclick="closeLogin()" class="float-right text-2xl text-slate-300 hover:text-red-500">&times;</button>
+    <div class="mb-7 text-center">
+      <div class="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-blue-700 text-3xl text-white">🔐</div>
+      <h2 class="text-xl font-bold">เข้าสู่ระบบ</h2>
+      <p class="mt-1 text-sm text-slate-500">สำหรับอาจารย์และเจ้าหน้าที่ภาควิชา</p>
+    </div>
+    <form onsubmit="doLogin(event)" class="space-y-4">
+      <input id="inEmail" type="email" required class="w-full rounded-xl border px-4 py-3 outline-none focus:border-blue-600" placeholder="อีเมล">
+      <input id="inPass" type="password" required class="w-full rounded-xl border px-4 py-3 outline-none focus:border-blue-600" placeholder="รหัสผ่าน">
+      <button class="w-full rounded-xl bg-blue-700 py-3 font-semibold text-white hover:bg-blue-800">เข้าสู่ระบบ</button>
+    </form>
+    <p id="loginErr" class="mt-4 text-center text-sm text-red-600"></p>
+  </div>
+</div>
+
+<!-- ============ APP ============ -->
+<div id="app" class="hidden min-h-screen">
+  <header class="sticky top-0 z-30 border-b bg-white shadow-sm">
+    <div class="mx-auto flex max-w-[1400px] items-center justify-between px-4 py-3">
+      <div class="flex items-center gap-3">
+        <button onclick="toggleSide()" class="rounded-lg p-2 hover:bg-slate-100 md:hidden">☰</button>
+        <div>
+          <h1 class="font-bold text-blue-900">TeacherDB MSU</h1>
+          <p class="text-xs text-slate-500">ฐานข้อมูลอาจารย์และผลงานวิชาการ</p>
+        </div>
+      </div>
+      <div class="flex items-center gap-3">
+        <div class="hidden text-right sm:block">
+          <p id="uName" class="text-sm font-semibold"></p>
+          <p id="uRole" class="text-xs text-blue-700"></p>
+        </div>
+        <button onclick="openPassword()" class="rounded-lg bg-slate-100 px-3 py-2 text-sm hover:bg-slate-200">เปลี่ยนรหัสผ่าน</button>
+        <button onclick="doLogout()" class="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600 hover:bg-red-100">ออกจากระบบ</button>
+      </div>
+    </div>
+  </header>
+
+  <div class="mx-auto flex max-w-[1400px]">
+    <aside id="side" class="hidden w-64 shrink-0 border-r bg-white p-4 md:block">
+      <nav class="space-y-1.5">
+        <button class="nb w-full rounded-xl px-4 py-3 text-left text-sm hover:bg-blue-50" data-v="dash" onclick="go('dash')">📊 แดชบอร์ด</button>
+        <button class="nb w-full rounded-xl px-4 py-3 text-left text-sm hover:bg-blue-50" data-v="profile" onclick="go('profile')">👤 ประวัติอาจารย์</button>
+        <button class="nb w-full rounded-xl px-4 py-3 text-left text-sm hover:bg-blue-50" data-v="teachers" onclick="go('teachers')">👨‍🏫 ทำเนียบอาจารย์</button>
+        <button class="nb w-full rounded-xl px-4 py-3 text-left text-sm hover:bg-blue-50" data-v="works" onclick="go('works')">📚 ผลงานวิชาการ</button>
+        <button class="nb w-full rounded-xl px-4 py-3 text-left text-sm hover:bg-blue-50" data-v="teaching" onclick="go('teaching')">🧑‍💻 ภาระการสอน</button>
+        <button id="mQa" class="nb w-full rounded-xl px-4 py-3 text-left text-sm hover:bg-blue-50" data-v="qa" onclick="go('qa')">✅ AUN-QA</button>
+        <button id="mReport" class="nb w-full rounded-xl px-4 py-3 text-left text-sm hover:bg-blue-50" data-v="report" onclick="go('report')">📄 รายงาน PDF</button>
+        <button id="mNotice" class="nb hidden w-full rounded-xl px-4 py-3 text-left text-sm hover:bg-blue-50" data-v="notice" onclick="go('notice')">🔔 การแจ้งเตือน</button>
+        <button id="mUsers" class="nb hidden w-full rounded-xl px-4 py-3 text-left text-sm hover:bg-blue-50" data-v="users" onclick="go('users')">👥 ผู้ใช้และสิทธิ์</button>
+        <button id="mSet" class="nb hidden w-full rounded-xl px-4 py-3 text-left text-sm hover:bg-blue-50" data-v="set" onclick="go('set')">⚙️ ตั้งค่าระบบ</button>
+        <button id="mLog" class="nb hidden w-full rounded-xl px-4 py-3 text-left text-sm hover:bg-blue-50" data-v="log" onclick="go('log')">🗂️ ประวัติการใช้งาน</button>
+      </nav>
+    </aside>
+
+    <main class="w-full min-w-0 p-4 md:p-6">
+
+      <!-- DASHBOARD -->
+      <section id="vDash" class="vw fade">
+        <div class="mb-5 flex items-center justify-between">
+          <div><h2 class="text-2xl font-bold">แดชบอร์ด</h2><p class="text-sm text-slate-500">ภาพรวมข้อมูลภาควิชา</p></div>
+          <button onclick="loadApp()" class="rounded-xl bg-slate-100 px-4 py-2 text-sm hover:bg-slate-200">↻ รีเฟรช</button>
+        </div>
+
+        <div id="dNotices" class="mb-5 space-y-2"></div>
+
+        <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          <div class="rounded-2xl bg-gradient-to-br from-blue-700 to-blue-950 p-5 text-white shadow"><p class="text-sm opacity-80">อาจารย์</p><p id="sT" class="mt-1 text-3xl font-bold">0</p></div>
+          <div class="rounded-2xl bg-gradient-to-br from-emerald-600 to-emerald-800 p-5 text-white shadow"><p class="text-sm opacity-80">ผลงานอนุมัติ</p><p id="sA" class="mt-1 text-3xl font-bold">0</p></div>
+          <div class="rounded-2xl bg-gradient-to-br from-amber-500 to-orange-600 p-5 text-white shadow"><p class="text-sm opacity-80">รออนุมัติ</p><p id="sP" class="mt-1 text-3xl font-bold">0</p></div>
+          <div class="rounded-2xl bg-gradient-to-br from-violet-600 to-purple-800 p-5 text-white shadow"><p class="text-sm opacity-80">ชั่วโมงสอนรวม</p><p id="sH" class="mt-1 text-3xl font-bold">0</p></div>
+        </div>
+
+        <div class="mt-6 grid gap-6 lg:grid-cols-3">
+          <div class="rounded-2xl bg-white p-5 shadow-sm lg:col-span-2"><h3 class="mb-4 font-bold">ผลงานตามปี</h3><canvas id="cYear" height="110"></canvas></div>
+          <div class="rounded-2xl bg-white p-5 shadow-sm"><h3 class="mb-4 font-bold">สถานะผลงาน</h3><canvas id="cStatus" height="200"></canvas></div>
+          <div class="rounded-2xl bg-white p-5 shadow-sm lg:col-span-2"><h3 class="mb-4 font-bold">ภาระการสอนรายบุคคล (ชั่วโมง)</h3><canvas id="cHours" height="140"></canvas></div>
+          <div class="rounded-2xl border border-blue-100 bg-gradient-to-br from-blue-50 to-white p-5 shadow-sm">
+            <h3 class="mb-3 font-bold">🤖 AI Assistant</h3>
+            <div id="aiBox" class="mb-3 max-h-52 min-h-[6rem] overflow-y-auto whitespace-pre-wrap rounded-xl bg-white p-3 text-sm shadow-inner">สอบถามข้อมูลในระบบได้</div>
+            <div class="flex gap-2">
+              <input id="aiQ" onkeydown="if(event.key==='Enter')askAI()" class="w-full rounded-xl border px-3 py-2 text-sm" placeholder="ถามคำถาม...">
+              <button onclick="askAI()" class="rounded-xl bg-blue-700 px-4 text-white">ถาม</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- PROFILE -->
+      <section id="vProfile" class="vw hidden fade">
+        <div class="mb-5 flex flex-wrap items-center justify-between gap-3">
+          <div><h2 class="text-2xl font-bold">ประวัติอาจารย์</h2><p class="text-sm text-slate-500">ข้อมูลส่วนบุคคล การศึกษา และความเชี่ยวชาญ</p></div>
+          <div id="pfAdminBar" class="hidden flex gap-2">
+            <select id="pfSelect" onchange="pickTeacher(this.value)" class="rounded-xl border px-3 py-2 text-sm"></select>
+            <button onclick="newTeacher()" class="rounded-xl bg-emerald-600 px-4 py-2 text-sm text-white">+ อาจารย์ใหม่</button>
+          </div>
+        </div>
+        <div id="pfWarn" class="mb-4 hidden rounded-2xl bg-amber-50 p-5 text-amber-800"></div>
+        <form id="pfForm" onsubmit="saveProfile(event)" class="space-y-5">
+          <input type="hidden" name="TeacherId">
+
+          <div class="rounded-2xl bg-white p-6 shadow-sm">
+            <h3 class="mb-4 border-l-4 border-blue-700 pl-3 text-lg font-bold text-blue-900">ข้อมูลส่วนบุคคล</h3>
+            <div class="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+              <div><label class="lb">คำนำหน้า</label>
+                <select name="Prefix" class="ip"><option value="">-เลือก-</option><option>นาย</option><option>นาง</option><option>นางสาว</option><option>ดร.</option><option>ผศ.ดร.</option><option>รศ.ดร.</option><option>ศ.ดร.</option></select></div>
+              <div><label class="lb">ชื่อ *</label><input name="FirstName" required class="ip"></div>
+              <div><label class="lb">นามสกุล *</label><input name="LastName" required class="ip"></div>
+              <div><label class="lb">วันเดือนปีเกิด</label><input name="BirthDate" type="date" class="ip"></div>
+              <div><label class="lb">เพศ</label><select name="Gender" class="ip"><option value="">-เลือก-</option><option>ชาย</option><option>หญิง</option></select></div>
+              <div><label class="lb">เลขบัตรประชาชน</label><input name="CitizenId" maxlength="13" class="ip"></div>
+              <div><label class="lb">อีเมล</label><input name="Email" type="email" class="ip"></div>
+              <div><label class="lb">โทรศัพท์</label><input name="Phone" class="ip"></div>
+              <div><label class="lb">วันที่เริ่มปฏิบัติงาน</label><input name="StartDate" type="date" class="ip"></div>
+              <div><label class="lb">ตำแหน่งงาน</label><input name="Position" placeholder="อาจารย์" class="ip"></div>
+              <div><label class="lb">ตำแหน่งทางวิชาการ</label>
+                <select name="AcademicPosition" class="ip"><option value="">-ไม่มี-</option><option>อาจารย์</option><option>ผู้ช่วยศาสตราจารย์</option><option>รองศาสตราจารย์</option><option>ศาสตราจารย์</option></select></div>
+              <div><label class="lb">ประเภทการจ้าง</label>
+                <select name="EmploymentType" class="ip"><option value="">-เลือก-</option><option>ข้าราชการ</option><option>พนักงานมหาวิทยาลัย</option><option>ลูกจ้างชั่วคราว</option><option>อาจารย์พิเศษ</option></select></div>
+              <div class="md:col-span-2 lg:col-span-3"><label class="lb">URL รูปโปรไฟล์</label><input name="ProfileImageUrl" class="ip" placeholder="https://..."></div>
+            </div>
+          </div>
+
+          <div class="rounded-2xl bg-white p-6 shadow-sm">
+            <h3 class="mb-4 border-l-4 border-blue-700 pl-3 text-lg font-bold text-blue-900">ประวัติการศึกษา</h3>
+            <p class="mb-2 text-sm font-semibold text-slate-600">ปริญญาตรี</p>
+            <div class="mb-4 grid gap-3 md:grid-cols-3">
+              <input name="DegreeBachelor" class="ip" placeholder="วุฒิ เช่น ค.บ.">
+              <input name="UniversityBachelor" class="ip" placeholder="สถาบัน">
+              <input name="YearBachelor" type="number" class="ip" placeholder="ปีที่จบ พ.ศ.">
+            </div>
+            <p class="mb-2 text-sm font-semibold text-slate-600">ปริญญาโท</p>
+            <div class="mb-4 grid gap-3 md:grid-cols-3">
+              <input name="DegreeMaster" class="ip" placeholder="วุฒิ เช่น กศ.ม.">
+              <input name="UniversityMaster" class="ip" placeholder="สถาบัน">
+              <input name="YearMaster" type="number" class="ip" placeholder="ปีที่จบ พ.ศ.">
+            </div>
+            <p class="mb-2 text-sm font-semibold text-slate-600">ปริญญาเอก</p>
+            <div class="grid gap-3 md:grid-cols-3">
+              <input name="DegreeDoctoral" class="ip" placeholder="วุฒิ เช่น ปร.ด.">
+              <input name="UniversityDoctoral" class="ip" placeholder="สถาบัน">
+              <input name="YearDoctoral" type="number" class="ip" placeholder="ปีที่จบ พ.ศ.">
+            </div>
+          </div>
+
+          <div class="rounded-2xl bg-white p-6 shadow-sm">
+            <h3 class="mb-4 border-l-4 border-blue-700 pl-3 text-lg font-bold text-blue-900">ความเชี่ยวชาญ</h3>
+            <div class="space-y-3">
+              <div><label class="lb">ความเชี่ยวชาญ</label><textarea name="Expertise" rows="3" class="ip" placeholder="เช่น เทคโนโลยีการศึกษา, สื่อดิจิทัล, การออกแบบการเรียนรู้"></textarea></div>
+              <div><label class="lb">ความสนใจด้านการวิจัย</label><textarea name="ResearchInterest" rows="3" class="ip"></textarea></div>
+              <div><label class="lb">ประวัติโดยย่อ</label><textarea name="Biography" rows="4" class="ip"></textarea></div>
+              <div class="flex flex-wrap items-center gap-5 pt-2">
+                <label class="flex items-center gap-2 text-sm"><input name="PublicProfile" type="checkbox" class="h-4 w-4"> เผยแพร่ข้อมูลในหน้าสาธารณะ</label>
+                <div id="pfStatusBox" class="hidden items-center gap-2 text-sm">
+                  <span>สถานะ:</span>
+                  <select name="Status" class="rounded-lg border px-2 py-1"><option value="Active">ปฏิบัติงาน</option><option value="Inactive">ไม่ปฏิบัติงาน</option></select>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="flex justify-end"><button class="rounded-xl bg-blue-700 px-7 py-3 font-semibold text-white hover:bg-blue-800">บันทึกประวัติ</button></div>
+        </form>
+      </section>
+
+      <!-- TEACHERS -->
+      <section id="vTeachers" class="vw hidden fade">
+        <h2 class="text-2xl font-bold">ทำเนียบอาจารย์</h2>
+        <p class="mb-4 text-sm text-slate-500">รายชื่อและความเชี่ยวชาญ</p>
+        <input id="tSearch" onkeyup="renderTeachers()" class="mb-5 w-full rounded-xl border px-4 py-3" placeholder="🔍 ค้นหาชื่อ ตำแหน่ง หรือความเชี่ยวชาญ">
+        <div id="tList" class="grid gap-4 md:grid-cols-2 xl:grid-cols-3"></div>
+      </section>
+
+      <!-- WORKS -->
+      <section id="vWorks" class="vw hidden fade">
+        <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
+          <div><h2 class="text-2xl font-bold">ผลงานวิชาการ</h2><p class="text-sm text-slate-500">เพิ่ม แก้ไข และติดตามการอนุมัติ</p></div>
+          <button onclick="workForm()" class="rounded-xl bg-blue-700 px-4 py-2.5 text-sm font-medium text-white hover:bg-blue-800">+ เพิ่มผลงาน</button>
+        </div>
+        <div class="mb-4 flex flex-wrap gap-2">
+          <input id="wSearch" onkeyup="renderWorks()" class="w-full rounded-xl border px-4 py-2.5 md:w-80" placeholder="🔍 ค้นหาผลงาน">
+          <select id="wStatus" onchange="renderWorks()" class="rounded-xl border px-3 py-2.5 text-sm">
+            <option value="">ทุกสถานะ</option><option value="Pending">รออนุมัติ</option><option value="Approved">อนุมัติ</option><option value="Rejected">ปฏิเสธ</option>
+          </select>
+        </div>
+        <div class="overflow-x-auto rounded-2xl bg-white shadow-sm">
+          <table class="w-full text-left text-sm">
+            <thead class="bg-slate-100 text-slate-600"><tr>
+              <th class="p-4">ผลงาน</th><th class="p-4">เจ้าของ</th><th class="p-4">ประเภท</th><th class="p-4">ปี</th><th class="p-4">สถานะ</th><th class="p-4">จัดการ</th>
+            </tr></thead>
+            <tbody id="wTable"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- TEACHING -->
+      <section id="vTeaching" class="vw hidden fade">
+        <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
+          <div><h2 class="text-2xl font-bold">ภาระการสอน</h2><p class="text-sm text-slate-500">รายวิชา ชั่วโมงสอน และจำนวนนักศึกษา</p></div>
+          <button onclick="teachForm()" class="rounded-xl bg-blue-700 px-4 py-2.5 text-sm font-medium text-white hover:bg-blue-800">+ เพิ่มภาระการสอน</button>
+        </div>
+        <input id="thSearch" onkeyup="renderTeaching()" class="mb-4 w-full rounded-xl border px-4 py-2.5 md:w-80" placeholder="🔍 ค้นหารายวิชา">
+        <div class="overflow-x-auto rounded-2xl bg-white shadow-sm">
+          <table class="w-full text-left text-sm">
+            <thead class="bg-slate-100 text-slate-600"><tr>
+              <th class="p-4">ปี/ภาค</th><th class="p-4">รายวิชา</th><th class="p-4">ผู้สอน</th><th class="p-4">กลุ่ม</th><th class="p-4">นศ.</th><th class="p-4">ชม.</th><th class="p-4">จัดการ</th>
+            </tr></thead>
+            <tbody id="thTable"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- QA -->
+      <section id="vQa" class="vw hidden fade">
+        <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
+          <div><h2 class="text-2xl font-bold">AUN-QA</h2><p class="text-sm text-slate-500">เกณฑ์ ตัวบ่งชี้ คะแนน และหลักฐาน</p></div>
+          <button id="qaAdd" onclick="qaForm()" class="hidden rounded-xl bg-blue-700 px-4 py-2.5 text-sm font-medium text-white">+ บันทึกผลประเมิน</button>
+        </div>
+        <div id="qaList" class="grid gap-3 md:grid-cols-2"></div>
+      </section>
+
+      <!-- REPORT -->
+      <section id="vReport" class="vw hidden fade">
+        <h2 class="text-2xl font-bold">รายงาน PDF</h2>
+        <p class="mb-5 text-sm text-slate-500">สร้างรายงานและจัดเก็บอัตโนมัติใน Google Drive</p>
+        <div class="max-w-3xl rounded-2xl bg-white p-6 shadow-sm">
+          <label class="lb">ปีการศึกษา / ปีผลงาน (พ.ศ.)</label>
+          <input id="rYear" type="number" class="ip mb-5">
+          <div class="grid gap-3 sm:grid-cols-2">
+            <button onclick="makeReport('teachers')" class="rounded-xl bg-blue-700 px-4 py-3.5 text-white hover:bg-blue-800">📋 รายงานข้อมูลอาจารย์</button>
+            <button onclick="makeReport('teaching')" class="rounded-xl bg-emerald-600 px-4 py-3.5 text-white hover:bg-emerald-700">🧑‍💻 รายงานภาระการสอน</button>
+            <button onclick="makeReport('works')" class="rounded-xl bg-violet-600 px-4 py-3.5 text-white hover:bg-violet-700">📚 รายงานผลงานวิชาการ</button>
+            <button onclick="makeReport('qa')" class="rounded-xl bg-amber-500 px-4 py-3.5 text-white hover:bg-amber-600">✅ รายงาน AUN-QA</button>
+          </div>
+          <div id="rResult" class="mt-5"></div>
+        </div>
+      </section>
+
+      <!-- NOTICE -->
+      <section id="vNotice" class="vw hidden fade">
+        <div class="mb-4 flex items-center justify-between">
+          <div><h2 class="text-2xl font-bold">การแจ้งเตือน</h2><p class="text-sm text-slate-500">ประกาศถึงผู้ใช้งานตามบทบาท</p></div>
+          <button onclick="noticeForm()" class="rounded-xl bg-blue-700 px-4 py-2.5 text-sm text-white">+ สร้างประกาศ</button>
+        </div>
+        <div id="nList" class="space-y-3"></div>
+      </section>
+
+      <!-- USERS -->
+      <section id="vUsers" class="vw hidden fade">
+        <div class="mb-4 flex items-center justify-between">
+          <div><h2 class="text-2xl font-bold">ผู้ใช้และสิทธิ์</h2><p class="text-sm text-slate-500">จัดการบัญชีและบทบาทการเข้าถึง</p></div>
+          <button onclick="userForm()" class="rounded-xl bg-blue-700 px-4 py-2.5 text-sm text-white">+ เพิ่มผู้ใช้</button>
+        </div>
+        <div class="overflow-x-auto rounded-2xl bg-white shadow-sm">
+          <table class="w-full text-left text-sm">
+            <thead class="bg-slate-100 text-slate-600"><tr>
+              <th class="p-4">ชื่อ</th><th class="p-4">อีเมล</th><th class="p-4">บทบาท</th><th class="p-4">เชื่อมอาจารย์</th><th class="p-4">สถานะ</th><th class="p-4">จัดการ</th>
+            </tr></thead>
+            <tbody id="uTable"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- SETTINGS -->
+      <section id="vSet" class="vw hidden fade">
+        <h2 class="text-2xl font-bold">ตั้งค่าระบบ</h2>
+        <p class="mb-5 text-sm text-slate-500">ข้อมูลหน่วยงาน อีเมลแจ้งเตือน รายงาน และ AI</p>
+        <form onsubmit="saveSet(event)" class="max-w-3xl space-y-4 rounded-2xl bg-white p-6 shadow-sm">
+          <div><label class="lb">ชื่อระบบ</label><input id="SYSTEM_NAME" class="ip"></div>
+          <div class="grid gap-4 md:grid-cols-2">
+            <div><label class="lb">ชื่อภาควิชา</label><input id="DEPARTMENT_NAME" class="ip"></div>
+            <div><label class="lb">ชื่อคณะ</label><input id="FACULTY_NAME" class="ip"></div>
+            <div><label class="lb">ชื่อมหาวิทยาลัย</label><input id="UNIVERSITY_NAME" class="ip"></div>
+            <div><label class="lb">ปีการศึกษาปัจจุบัน</label><input id="CURRENT_YEAR" class="ip"></div>
+          </div>
+          <div><label class="lb">อีเมลรับแจ้งเตือนผลงานใหม่</label><input id="ADMIN_NOTIFICATION_EMAIL" type="email" class="ip"></div>
+          <div><label class="lb">Google Drive Folder ID สำหรับรายงาน</label><input id="REPORT_FOLDER_ID" class="ip" placeholder="เว้นว่างให้ระบบสร้างอัตโนมัติ"></div>
+          <div><label class="lb">Gemini API Key</label><input id="GEMINI_API_KEY" type="password" class="ip" placeholder="เว้นว่างไว้หากไม่ต้องการเปลี่ยน"></div>
+          <div><label class="lb">Gemini Model</label><input id="GEMINI_MODEL" class="ip" placeholder="gemini-2.0-flash"></div>
+          <div class="flex flex-wrap gap-5 pt-1">
+            <label class="flex items-center gap-2 text-sm"><input id="EMAIL_ENABLED" type="checkbox" class="h-4 w-4"> เปิดใช้งานอีเมลแจ้งเตือน</label>
+            <label class="flex items-center gap-2 text-sm"><input id="PUBLIC_AI_ENABLED" type="checkbox" class="h-4 w-4"> เปิด AI Assistant หน้าสาธารณะ</label>
+          </div>
+          <button class="rounded-xl bg-blue-700 px-6 py-3 font-medium text-white hover:bg-blue-800">บันทึกการตั้งค่า</button>
+        </form>
+      </section>
+
+      <!-- LOG -->
+      <section id="vLog" class="vw hidden fade">
+        <h2 class="text-2xl font-bold">ประวัติการใช้งาน</h2>
+        <p class="mb-4 text-sm text-slate-500">150 รายการล่าสุด</p>
+        <div class="overflow-x-auto rounded-2xl bg-white shadow-sm">
+          <table class="w-full text-left text-sm">
+            <thead class="bg-slate-100 text-slate-600"><tr><th class="p-3">เวลา</th><th class="p-3">การกระทำ</th><th class="p-3">ตาราง</th><th class="p-3">รายละเอียด</th></tr></thead>
+            <tbody id="lTable"></tbody>
+          </table>
+        </div>
+      </section>
+
+    </main>
+  </div>
+</div>
+
+<!-- MODAL -->
+<div id="modal" class="fixed inset-0 z-[90] hidden items-center justify-center bg-slate-900/60 p-4">
+  <div class="max-h-[92vh] w-full max-w-3xl overflow-y-auto rounded-2xl bg-white p-6 shadow-2xl">
+    <div class="mb-5 flex items-center justify-between">
+      <h3 id="mTitle" class="text-xl font-bold"></h3>
+      <button onclick="closeModal()" class="text-3xl leading-none text-slate-300 hover:text-red-500">&times;</button>
+    </div>
+    <div id="mBody"></div>
+  </div>
+</div>
+
+<script>
+tailwind.config={theme:{extend:{}}};
+document.addEventListener('DOMContentLoaded',()=>{
+  document.querySelectorAll('.ip').forEach(e=>e.classList.add('w-full','rounded-xl','border','border-slate-200','px-3','py-2.5','outline-none','focus:border-blue-600'));
+  document.querySelectorAll('.lb').forEach(e=>e.classList.add('mb-1','block','text-sm','font-medium','text-slate-600'));
+});
+
+/* ---------- STATE ---------- */
+let S=null, D={}, pickedTeacher='', charts={};
+const ROLE_TH={Admin:'ผู้ดูแลระบบ',Head:'หัวหน้าภาควิชา',QA:'เจ้าหน้าที่ QA',Teacher:'อาจารย์'};
+
+/* ---------- API ---------- */
+async function api(action,payload={},quiet){
+  if(!quiet) show(true);
+  try{
+    const res=await fetch(API_URL,{
+      method:'POST',
+      headers:{'Content-Type':'text/plain;charset=utf-8'},
+      body:JSON.stringify({action,payload})
+    });
+    const j=await res.json();
+    if(!j.ok) throw new Error(j.error||'เกิดข้อผิดพลาด');
+    return j.data;
+  }finally{ if(!quiet) show(false); }
+}
+function show(b){document.getElementById('loader').classList.toggle('hidden',!b);}
+function toast(msg,type='ok'){
+  const c={ok:'bg-emerald-600',err:'bg-red-600',info:'bg-blue-600'}[type];
+  const d=document.createElement('div');
+  d.className=`${c} fade rounded-xl px-5 py-3 text-sm text-white shadow-lg`;
+  d.textContent=msg;
+  document.getElementById('toast').appendChild(d);
+  setTimeout(()=>d.remove(),3500);
+}
+function err(e){toast(e.message||'เกิดข้อผิดพลาด','err');}
+
+/* ---------- PUBLIC ---------- */
+let pubTimer;
+function debouncePublic(){clearTimeout(pubTimer);pubTimer=setTimeout(loadPublic,400);}
+
+async function loadPublic(){
+  try{
+    const q=document.getElementById('pSearch').value||'';
+    const d=await api('publicData',{q},true);
+    pubTeachers(d);
+  }catch(e){err(e);}
+}
+
+function pubTeachers(d){
+  document.getElementById('pTeachers').textContent=d.stats.teachers;
+  document.getElementById('pWorks').textContent=d.stats.works;
+  document.getElementById('pHours').textContent=d.stats.teachingHours;
+  document.getElementById('pCourses').textContent=d.stats.courses;
+
+  document.getElementById('pNotices').innerHTML=d.notices.map(n=>`
+    <div class="rounded-xl border-l-4 border-amber-500 bg-amber-50 p-4">
+      <p class="font-semibold text-amber-900">📢 ${esc(n.Title)}</p>
+      <p class="mt-1 text-sm text-amber-800">${esc(n.Message)}</p>
+    </div>`).join('');
+
+  document.getElementById('pList').innerHTML=d.teachers.length?d.teachers.map(t=>`
+    <article class="rounded-2xl bg-white p-5 shadow-sm transition hover:-translate-y-1 hover:shadow-md">
+      <div class="flex items-start gap-3">
+        ${t.ProfileImageUrl?`<img src="${esc(t.ProfileImageUrl)}" class="h-14 w-14 rounded-full object-cover">`
+          :`<div class="flex h-14 w-14 items-center justify-center rounded-full bg-blue-100 text-2xl">👨‍🏫</div>`}
+        <div class="min-w-0">
+          <h3 class="truncate font-bold">${esc(t.FullName)}</h3>
+          <p class="text-sm text-blue-700">${esc(t.AcademicPosition||t.Position||'-')}</p>
+        </div>
+      </div>
+      <p class="mt-3 text-sm text-slate-600"><b>ความเชี่ยวชาญ:</b> ${esc(t.Expertise||'-')}</p>
+      <div class="mt-3 flex items-center justify-between border-t pt-3 text-xs text-slate-500">
+        <span>${esc(t.Email||'')}</span>
+        <span class="rounded-full bg-emerald-50 px-2 py-1 text-emerald-700">ผลงาน ${t.works}</span>
+      </div>
+    </article>`).join(''):'<p class="col-span-full py-10 text-center text-slate-400">ไม่พบข้อมูลอาจารย์</p>';
+
+  document.getElementById('pRecent').innerHTML=d.works.length?d.works.map(w=>`
+    <div class="rounded-xl border p-3">
+      <p class="font-medium">${esc(w.TitleTH)}</p>
+      <p class="mt-1 text-xs text-slate-500">${esc(w.WorkType)} · ${esc(w.PublicationYear)} · ${esc(w.JournalOrPublisher||'-')}</p>
+    </div>`).join(''):'<p class="text-sm text-slate-400">ยังไม่มีผลงานเผยแพร่</p>';
+
+  drawBar('pChartYear',d.charts.byYear,'จำนวนผลงาน');
+  drawPie('pChartType',d.charts.byType);
+}
+
+async function publicAsk(){
+  const q=document.getElementById('pAiQ').value.trim(); if(!q)return;
+  const box=document.getElementById('pAiBox'); box.textContent='กำลังประมวลผล...';
+  try{ box.textContent=await api('publicAsk',{question:q},true); }
+  catch(e){ box.textContent='ขออภัย: '+e.message; }
+}
+
+/* ---------- LOGIN ---------- */
+function openLogin(){const p=document.getElementById('loginPage');p.classList.remove('hidden');p.classList.add('flex');}
+function closeLogin(){const p=document.getElementById('loginPage');p.classList.add('hidden');p.classList.remove('flex');}
+
+async function doLogin(e){
+  e.preventDefault();
+  document.getElementById('loginErr').textContent='';
+  try{
+    S=await api('login',{email:document.getElementById('inEmail').value,password:document.getElementById('inPass').value});
+    localStorage.setItem('tdb_token',S.token);
+    enterApp();
+  }catch(ex){document.getElementById('loginErr').textContent=ex.message;}
+}
+
+function enterApp(){
+  closeLogin();
+  document.getElementById('pubPage').classList.add('hidden');
+  document.getElementById('app').classList.remove('hidden');
+  document.getElementById('uName').textContent=S.fullName;
+  document.getElementById('uRole').textContent=ROLE_TH[S.role]||S.role;
+
+  if(S.role==='Admin'){
+    ['mUsers','mSet','mLog','mNotice'].forEach(id=>document.getElementById(id).classList.remove('hidden'));
+    document.getElementById('pfAdminBar').classList.remove('hidden');
+    document.getElementById('pfStatusBox').classList.remove('hidden');
+    document.getElementById('pfStatusBox').classList.add('flex');
+  }
+  if(S.role==='Teacher') document.getElementById('mReport').classList.add('hidden');
+  if(['Admin','QA'].includes(S.role)) document.getElementById('qaAdd').classList.remove('hidden');
+
+  loadApp(); go('dash');
+}
+
+async function doLogout(){
+  try{ await api('logout',{token:S.token},true);}catch(e){}
+  localStorage.removeItem('tdb_token');
+  location.reload();
+}
+
+/* ---------- APP ---------- */
+async function loadApp(){
+  try{
+    D=await api('appData',{token:S.token});
+    renderDash(); renderProfile(); renderTeachers(); renderWorks();
+    renderTeaching(); renderQA(); renderNotices(); renderUsers(); renderSettings(); renderLogs();
+  }catch(e){
+    err(e);
+    if(String(e.message).includes('Session')){localStorage.removeItem('tdb_token');setTimeout(()=>location.reload(),1500);}
+  }
+}
+
+function go(v){
+  document.querySelectorAll('.vw').forEach(x=>x.classList.add('hidden'));
+  document.getElementById('v'+v.charAt(0).toUpperCase()+v.slice(1)).classList.remove('hidden');
+  document.querySelectorAll('.nb').forEach(b=>b.classList.remove('nav-on'));
+  const b=document.querySelector(`[data-v="${v}"]`); if(b)b.classList.add('nav-on');
+  if(window.innerWidth<768) document.getElementById('side').classList.add('hidden');
+}
+function toggleSide(){document.getElementById('side').classList.toggle('hidden');}
+
+function renderDash(){
+  const s=D.stats;
+  document.getElementById('sT').textContent=s.teachers;
+  document.getElementById('sA').textContent=s.approved;
+  document.getElementById('sP').textContent=s.pending;
+  document.getElementById('sH').textContent=s.hours;
+
+  document.getElementById('dNotices').innerHTML=(D.notices||[]).map(n=>`
+    <div class="rounded-xl border-l-4 border-blue-600 bg-blue-50 p-4">
+      <p class="font-semibold text-blue-900">📢 ${esc(n.Title)}</p>
+      <p class="mt-1 text-sm text-blue-800">${esc(n.Message)}</p>
+    </div>`).join('');
+
+  drawBar('cYear',D.charts.byYear,'ผลงาน');
+  drawPie('cStatus',{'อนุมัติ':D.charts.byStatus.Approved,'รออนุมัติ':D.charts.byStatus.Pending,'ปฏิเสธ':D.charts.byStatus.Rejected});
+  drawBar('cHours',D.charts.hoursByTeacher,'ชั่วโมง','#7c3aed');
+  document.getElementById('rYear').value=(D.settings?(D.settings.find(x=>x.SettingKey==='CURRENT_YEAR')||{}).SettingValue:'')||new Date().getFullYear()+543;
+}
+
+async function askAI(){
+  const q=document.getElementById('aiQ').value.trim(); if(!q)return;
+  const box=document.getElementById('aiBox'); box.textContent='กำลังประมวลผล...';
+  try{ box.textContent=await api('ask',{token:S.token,question:q},true); }
+  catch(e){ box.textContent='ขออภัย: '+e.message; }
+}
+
+/* ---------- PROFILE ---------- */
+function renderProfile(){
+  const f=document.getElementById('pfForm'), warn=document.getElementById('pfWarn');
+
+  if(S.role==='Admin'){
+    document.getElementById('pfSelect').innerHTML='<option value="">-- เลือกอาจารย์ --</option>'+
+      (D.teachers||[]).map(t=>`<option value="${t.TeacherId}">${esc(t.FullName)}</option>`).join('');
+    document.getElementById('pfSelect').value=pickedTeacher;
+  }
+
+  const t=S.role==='Admin'?(D.teachers||[]).find(x=>x.TeacherId===pickedTeacher):D.profile;
+
+  if(!t||!t.TeacherId){
+    if(S.role==='Admin'){warn.classList.add('hidden');f.classList.remove('hidden');f.reset();}
+    else{warn.classList.remove('hidden');warn.textContent='บัญชีของท่านยังไม่ได้เชื่อมโยงกับข้อมูลอาจารย์ กรุณาติดต่อผู้ดูแลระบบ';f.classList.add('hidden');}
+    return;
+  }
+
+  warn.classList.add('hidden'); f.classList.remove('hidden'); f.reset();
+
+  Object.keys(t).forEach(k=>{
+    const el=f.querySelector(`[name="${k}"]`); if(!el)return;
+    if(el.type==='checkbox') el.checked=String(t[k]).toUpperCase()==='TRUE';
+    else if(el.type==='date') el.value=String(t[k]||'').substring(0,10);
+    else el.value=t[k]||'';
+  });
+}
+
+function pickTeacher(id){pickedTeacher=id;renderProfile();}
+function newTeacher(){pickedTeacher='';document.getElementById('pfForm').reset();document.getElementById('pfWarn').classList.add('hidden');document.getElementById('pfForm').classList.remove('hidden');}
+
+async function saveProfile(e){
+  e.preventDefault();
+  const r=fd(e.target);
+  r.PublicProfile=e.target.querySelector('[name="PublicProfile"]').checked?'TRUE':'FALSE';
+  try{
+    const res=await api('saveTeacher',{token:S.token,record:r});
+    pickedTeacher=res.TeacherId;
+    toast('บันทึกประวัติเรียบร้อย');
+    await loadApp();
+  }catch(ex){err(ex);}
+}
+
+/* ---------- TEACHERS ---------- */
+function renderTeachers(){
+  const q=(document.getElementById('tSearch').value||'').toLowerCase();
+  const rows=(D.teachers||[]).filter(t=>`${t.FullName} ${t.Expertise} ${t.AcademicPosition}`.toLowerCase().includes(q));
+
+  document.getElementById('tList').innerHTML=rows.length?rows.map(t=>`
+    <article class="rounded-2xl bg-white p-5 shadow-sm">
+      <h3 class="font-bold">${esc(t.FullName)}</h3>
+      <p class="text-sm text-blue-700">${esc(t.AcademicPosition||t.Position||'-')}</p>
+      <p class="mt-3 text-sm"><b>ความเชี่ยวชาญ:</b> ${esc(t.Expertise||'-')}</p>
+      <p class="mt-2 text-xs text-slate-500">${esc(t.Email||'')}</p>
+      ${S.role==='Admin'?`<button onclick="pickedTeacher='${t.TeacherId}';go('profile');renderProfile()" class="mt-3 rounded-lg bg-blue-50 px-3 py-1.5 text-xs text-blue-700">แก้ไขประวัติ</button>`:''}
+    </article>`).join(''):'<p class="col-span-full text-slate-400">ไม่พบข้อมูล</p>';
+}
+
+/* ---------- WORKS ---------- */
+function tName(id){const t=(D.teachers||[]).find(x=>x.TeacherId===id);return t?t.FullName:'-';}
+
+function renderWorks(){
+  const q=(document.getElementById('wSearch').value||'').toLowerCase();
+  const st=document.getElementById('wStatus').value;
+  const can=['Admin','Head'].includes(S.role);
+
+  const rows=(D.works||[])
+    .filter(w=>!st||w.Status===st)
+    .filter(w=>`${w.TitleTH} ${w.JournalOrPublisher} ${w.WorkType}`.toLowerCase().includes(q));
+
+  document.getElementById('wTable').innerHTML=rows.length?rows.map(w=>`
+    <tr class="border-t hover:bg-slate-50">
+      <td class="p-4"><p class="font-medium">${esc(w.TitleTH)}</p><p class="text-xs text-slate-400">${esc(w.JournalOrPublisher||'')}</p>
+        ${w.ReviewerComment?`<p class="mt-1 text-xs text-amber-700">หมายเหตุ: ${esc(w.ReviewerComment)}</p>`:''}</td>
+      <td class="p-4 text-xs">${esc(tName(w.TeacherId))}</td>
+      <td class="p-4">${esc(w.WorkType)}</td>
+      <td class="p-4">${esc(w.PublicationYear)}</td>
+      <td class="p-4">${badge(w.Status)}</td>
+      <td class="p-4 whitespace-nowrap">
+        ${can&&w.Status==='Pending'?`<button onclick="review('${w.WorkId}','Approved')" class="rounded-lg bg-emerald-100 px-2 py-1 text-xs text-emerald-700">อนุมัติ</button>
+        <button onclick="review('${w.WorkId}','Rejected')" class="rounded-lg bg-red-100 px-2 py-1 text-xs text-red-700">ปฏิเสธ</button>`:''}
+        ${(S.role==='Admin'||w.TeacherId===S.teacherId)?`<button onclick="workForm('${w.WorkId}')" class="rounded-lg bg-blue-50 px-2 py-1 text-xs text-blue-700">แก้ไข</button>
+        <button onclick="del('works','${w.WorkId}')" class="rounded-lg bg-slate-100 px-2 py-1 text-xs">ลบ</button>`:''}
+      </td>
+    </tr>`).join(''):'<tr><td colspan="6" class="p-6 text-center text-slate-400">ไม่พบข้อมูล</td></tr>';
+}
+
+function workForm(id){
+  const w=(D.works||[]).find(x=>x.WorkId===id)||{};
+  const opts=(D.teachers||[]).map(t=>`<option value="${t.TeacherId}" ${w.TeacherId===t.TeacherId?'selected':''}>${esc(t.FullName)}</option>`).join('');
+
+  modal(id?'แก้ไขผลงานวิชาการ':'เพิ่มผลงานวิชาการ',`
+  <form onsubmit="saveWork(event)" class="grid gap-3 md:grid-cols-2">
+    <input type="hidden" name="WorkId" value="${w.WorkId||''}">
+    ${S.role==='Admin'?`<div class="md:col-span-2"><label class="lb">อาจารย์เจ้าของผลงาน *</label><select name="TeacherId" required class="ip">${opts}</select></div>`:''}
+    <div class="md:col-span-2"><label class="lb">ชื่อผลงาน (ไทย) *</label><input name="TitleTH" required class="ip" value="${esc(w.TitleTH||'')}"></div>
+    <div class="md:col-span-2"><label class="lb">ชื่อผลงาน (อังกฤษ)</label><input name="TitleEN" class="ip" value="${esc(w.TitleEN||'')}"></div>
+    <div><label class="lb">ประเภท *</label><select name="WorkType" class="ip">
+      ${['บทความวิจัย','บทความวิชาการ','งานวิจัย','หนังสือ/ตำรา','นวัตกรรม','ผลงานสร้างสรรค์','สิทธิบัตร/อนุสิทธิบัตร']
+        .map(x=>`<option ${w.WorkType===x?'selected':''}>${x}</option>`).join('')}</select></div>
+    <div><label class="lb">ปีเผยแพร่ (พ.ศ.)</label><input name="PublicationYear" type="number" class="ip" value="${esc(w.PublicationYear||(new Date().getFullYear()+543))}"></div>
+    <div class="md:col-span-2"><label class="lb">ผู้แต่งร่วม</label><input name="Authors" class="ip" value="${esc(w.Authors||'')}"></div>
+    <div class="md:col-span-2"><label class="lb">วารสาร / สำนักพิมพ์</label><input name="JournalOrPublisher" class="ip" value="${esc(w.JournalOrPublisher||'')}"></div>
+    <div><label class="lb">ปีที่ (Volume)</label><input name="Volume" class="ip" value="${esc(w.Volume||'')}"></div>
+    <div><label class="lb">ฉบับที่ (Issue)</label><input name="Issue" class="ip" value="${esc(w.Issue||'')}"></div>
+    <div><label class="lb">หน้า</label><input name="Pages" class="ip" value="${esc(w.Pages||'')}"></div>
+    <div><label class="lb">DOI</label><input name="DOI" class="ip" value="${esc(w.DOI||'')}"></div>
+    <div><label class="lb">ฐาน TCI</label><select name="TCILevel" class="ip">${['','TCI 1','TCI 2','TCI 3','ไม่อยู่ในฐาน'].map(x=>`<option ${w.TCILevel===x?'selected':''}>${x}</option>`).join('')}</select></div>
+    <div><label class="lb">Scopus Quartile</label><select name="ScopusQuartile" class="ip">${['','Q1','Q2','Q3','Q4'].map(x=>`<option ${w.ScopusQuartile===x?'selected':''}>${x}</option>`).join('')}</select></div>
+    <div><label class="lb">สัดส่วนการมีส่วนร่วม (%)</label><input name="ContributionPercent" type="number" class="ip" value="${esc(w.ContributionPercent||'')}"></div>
+    <div><label class="lb">URL ผลงาน</label><input name="URL" class="ip" value="${esc(w.URL||'')}"></div>
+    <div class="md:col-span-2"><label class="lb">ลิงก์ไฟล์หลักฐาน (Google Drive)</label><input name="FileUrl" class="ip" value="${esc(w.FileUrl||'')}"></div>
+    <div class="mt-3 flex justify-end gap-2 md:col-span-2">
+      <button type="button" onclick="closeModal()" class="rounded-xl bg-slate-100 px-5 py-2.5">ยกเลิก</button>
+      <button class="rounded-xl bg-blue-700 px-5 py-2.5 text-white">บันทึก</button>
+    </div>
+  </form>`);
+}
+
+async function saveWork(e){
+  e.preventDefault();
+  try{ await api('saveWork',{token:S.token,record:fd(e.target)}); closeModal(); toast('บันทึกผลงานเรียบร้อย'); loadApp(); }
+  catch(ex){err(ex);}
+}
+
+async function review(id,status){
+  const c=prompt(status==='Approved'?'หมายเหตุการอนุมัติ (ถ้ามี):':'เหตุผลที่ปฏิเสธ:','');
+  if(c===null)return;
+  try{ await api('reviewWork',{token:S.token,workId:id,status,comment:c}); toast('บันทึกผลการพิจารณาและส่งอีเมลแล้ว'); loadApp(); }
+  catch(ex){err(ex);}
+}
+
+/* ---------- TEACHING ---------- */
+function renderTeaching(){
+  const q=(document.getElementById('thSearch').value||'').toLowerCase();
+  const rows=(D.teaching||[]).filter(t=>`${t.CourseCode} ${t.CourseName}`.toLowerCase().includes(q));
+
+  document.getElementById('thTable').innerHTML=rows.length?rows.map(t=>`
+    <tr class="border-t hover:bg-slate-50">
+      <td class="p-4">${esc(t.AcademicYear)}/${esc(t.Semester)}</td>
+      <td class="p-4"><b>${esc(t.CourseCode)}</b><p class="text-xs text-slate-500">${esc(t.CourseName)}</p></td>
+      <td class="p-4 text-xs">${esc(tName(t.TeacherId))}</td>
+      <td class="p-4">${esc(t.Section||'-')}</td>
+      <td class="p-4">${esc(t.Students||'-')}</td>
+      <td class="p-4 font-semibold text-violet-700">${esc(t.TeachingHours||'0')}</td>
+      <td class="p-4 whitespace-nowrap">
+        ${(S.role==='Admin'||t.TeacherId===S.teacherId)?`<button onclick="teachForm('${t.TeachingId}')" class="rounded-lg bg-blue-50 px-2 py-1 text-xs text-blue-700">แก้ไข</button>
+        <button onclick="del('teaching','${t.TeachingId}')" class="rounded-lg bg-red-50 px-2 py-1 text-xs text-red-600">ลบ</button>`:''}
+      </td>
+    </tr>`).join(''):'<tr><td colspan="7" class="p-6 text-center text-slate-400">ไม่พบข้อมูล</td></tr>';
+}
+
+function teachForm(id){
+  const t=(D.teaching||[]).find(x=>x.TeachingId===id)||{};
+  const opts=(D.teachers||[]).map(x=>`<option value="${x.TeacherId}" ${t.TeacherId===x.TeacherId?'selected':''}>${esc(x.FullName)}</option>`).join('');
+
+  modal(id?'แก้ไขภาระการสอน':'เพิ่มภาระการสอน',`
+  <form onsubmit="saveTeach(event)" class="grid gap-3 md:grid-cols-2">
+    <input type="hidden" name="TeachingId" value="${t.TeachingId||''}">
+    ${S.role!=='Teacher'?`<div class="md:col-span-2"><label class="lb">อาจารย์ผู้สอน *</label><select name="TeacherId" required class="ip">${opts}</select></div>`:''}
+    <div><label class="lb">ปีการศึกษา *</label><input name="AcademicYear" required class="ip" value="${esc(t.AcademicYear||(new Date().getFullYear()+543))}"></div>
+    <div><label class="lb">ภาคเรียน *</label><select name="Semester" class="ip">${['1','2','ฤดูร้อน'].map(x=>`<option ${t.Semester===x?'selected':''}>${x}</option>`).join('')}</select></div>
+    <div><label class="lb">รหัสวิชา *</label><input name="CourseCode" required class="ip" value="${esc(t.CourseCode||'')}"></div>
+    <div><label class="lb">ชื่อรายวิชา *</label><input name="CourseName" required class="ip" value="${esc(t.CourseName||'')}"></div>
+    <div><label class="lb">หลักสูตร</label><input name="Program" class="ip" value="${esc(t.Program||'')}"></div>
+    <div><label class="lb">ระดับ</label><select name="Level" class="ip">${['ปริญญาตรี','ปริญญาโท','ปริญญาเอก'].map(x=>`<option ${t.Level===x?'selected':''}>${x}</option>`).join('')}</select></div>
+    <div><label class="lb">กลุ่มเรียน</label><input name="Section" class="ip" value="${esc(t.Section||'')}"></div>
+    <div><label class="lb">หน่วยกิต</label><input name="Credit" type="number" step="0.5" class="ip" value="${esc(t.Credit||'')}"></div>
+    <div><label class="lb">จำนวนนักศึกษา</label><input name="Students" type="number" class="ip" value="${esc(t.Students||'')}"></div>
+    <div><label class="lb">ชั่วโมงสอน *</label><input name="TeachingHours" type="number" required class="ip" value="${esc(t.TeachingHours||'')}"></div>
+    <div><label class="lb">ประเภทการสอน</label><select name="TeachingType" class="ip">${['สอนคนเดียว','สอนร่วม','ที่ปรึกษาวิทยานิพนธ์'].map(x=>`<option ${t.TeachingType===x?'selected':''}>${x}</option>`).join('')}</select></div>
+    <div class="md:col-span-2"><label class="lb">หมายเหตุ</label><input name="Note" class="ip" value="${esc(t.Note||'')}"></div>
+    <div class="mt-3 flex justify-end gap-2 md:col-span-2">
+      <button type="button" onclick="closeModal()" class="rounded-xl bg-slate-100 px-5 py-2.5">ยกเลิก</button>
+      <button class="rounded-xl bg-blue-700 px-5 py-2.5 text-white">บันทึก</button>
+    </div>
+  </form>`);
+}
+
+async function saveTeach(e){
+  e.preventDefault();
+  try{ await api('saveTeaching',{token:S.token,record:fd(e.target)}); closeModal(); toast('บันทึกเรียบร้อย'); loadApp(); }
+  catch(ex){err(ex);}
+}
+
+/* ---------- QA ---------- */
+function renderQA(){
+  document.getElementById('qaList').innerHTML=(D.qa||[]).length?(D.qa||[]).map(q=>`
+    <div class="rounded-2xl bg-white p-5 shadow-sm">
+      <div class="flex justify-between gap-3">
+        <div class="min-w-0">
+          <p class="font-bold">${esc(q.Criterion)}</p>
+          <p class="text-sm text-slate-700">${esc(q.Indicator)}</p>
+          <p class="mt-2 text-sm text-slate-500">${esc(q.AssessmentNote||'-')}</p>
+          <p class="mt-2 text-xs text-slate-400">ปี ${esc(q.AcademicYear||'-')} · ผู้ประเมิน ${esc(q.AssessedBy||'-')}</p>
+          ${q.EvidenceUrl?`<a href="${esc(q.EvidenceUrl)}" target="_blank" class="mt-2 inline-block text-xs text-blue-700 underline">เปิดหลักฐาน</a>`:''}
+        </div>
+        <div class="text-center">
+          <div class="rounded-xl bg-blue-50 px-4 py-3"><p class="text-2xl font-bold text-blue-700">${esc(q.Score||'0')}</p><p class="text-xs text-blue-600">คะแนน</p></div>
+          ${['Admin','QA'].includes(S.role)?`<button onclick="del('qa','${q.QAId}')" class="mt-2 text-xs text-red-500">ลบ</button>`:''}
+        </div>
+      </div>
+    </div>`).join(''):'<p class="col-span-full text-slate-400">ยังไม่มีข้อมูล AUN-QA</p>';
+}
+
+function qaForm(){
+  const opts=(D.teachers||[]).map(t=>`<option value="${t.TeacherId}">${esc(t.FullName)}</option>`).join('');
+  modal('บันทึกผลประเมิน AUN-QA',`
+  <form onsubmit="saveQA(event)" class="grid gap-3 md:grid-cols-2">
+    <div><label class="lb">ปีการศึกษา</label><input name="AcademicYear" class="ip" value="${new Date().getFullYear()+543}"></div>
+    <div><label class="lb">อาจารย์ (ถ้าเกี่ยวข้อง)</label><select name="TeacherId" class="ip"><option value="">-ระดับหลักสูตร-</option>${opts}</select></div>
+    <div class="md:col-span-2"><label class="lb">เกณฑ์ (Criterion) *</label><input name="Criterion" required class="ip" placeholder="เช่น AUN-QA Criterion 6: Academic Staff"></div>
+    <div class="md:col-span-2"><label class="lb">ตัวบ่งชี้ (Indicator) *</label><input name="Indicator" required class="ip"></div>
+    <div><label class="lb">คะแนน (1-7)</label><input name="Score" type="number" step="0.1" min="0" max="7" class="ip"></div>
+    <div><label class="lb">URL หลักฐาน</label><input name="EvidenceUrl" class="ip"></div>
+    <div class="md:col-span-2"><label class="lb">บันทึกการประเมิน</label><textarea name="AssessmentNote" rows="3" class="ip"></textarea></div>
+    <div class="mt-3 flex justify-end gap-2 md:col-span-2">
+      <button type="button" onclick="closeModal()" class="rounded-xl bg-slate-100 px-5 py-2.5">ยกเลิก</button>
+      <button class="rounded-xl bg-blue-700 px-5 py-2.5 text-white">บันทึก</button>
+    </div>
+  </form>`);
+}
+
+async function saveQA(e){
+  e.preventDefault();
+  try{ await api('saveQA',{token:S.token,record:fd(e.target)}); closeModal(); toast('บันทึกผลประเมินเรียบร้อย'); loadApp(); }
+  catch(ex){err(ex);}
+}
+
+/* ---------- NOTICE ---------- */
+function renderNotices(){
+  if(S.role!=='Admin')return;
+  document.getElementById('nList').innerHTML=(D.noticesAll||[]).map(n=>`
+    <div class="flex items-start justify-between gap-3 rounded-2xl bg-white p-5 shadow-sm">
+      <div><p class="font-bold">${esc(n.Title)} ${String(n.Active).toUpperCase()==='TRUE'?'<span class="ml-1 rounded-full bg-emerald-100 px-2 py-0.5 text-xs text-emerald-700">เปิด</span>':'<span class="ml-1 rounded-full bg-slate-100 px-2 py-0.5 text-xs">ปิด</span>'}</p>
+        <p class="mt-1 text-sm text-slate-600">${esc(n.Message)}</p>
+        <p class="mt-2 text-xs text-slate-400">กลุ่มเป้าหมาย: ${esc(n.TargetRole||'All')} · ${esc(n.StartDate||'')} - ${esc(n.EndDate||'')}</p></div>
+      <button onclick="del('notices','${n.NotificationId}')" class="rounded-lg bg-red-50 px-3 py-1.5 text-xs text-red-600">ลบ</button>
+    </div>`).join('')||'<p class="text-slate-400">ยังไม่มีประกาศ</p>';
+}
+
+function noticeForm(){
+  modal('สร้างประกาศ',`
+  <form onsubmit="saveNotice(event)" class="grid gap-3">
+    <div><label class="lb">หัวข้อ *</label><input name="Title" required class="ip"></div>
+    <div><label class="lb">ข้อความ *</label><textarea name="Message" rows="4" required class="ip"></textarea></div>
+    <div class="grid gap-3 md:grid-cols-3">
+      <div><label class="lb">กลุ่มเป้าหมาย</label><select name="TargetRole" class="ip">
+        <option value="All">ทุกคน</option><option value="Public">หน้าสาธารณะ</option><option value="Teacher">อาจารย์</option><option value="Head">หัวหน้าภาค</option><option value="QA">เจ้าหน้าที่ QA</option></select></div>
+      <div><label class="lb">เริ่มแสดง</label><input name="StartDate" type="date" class="ip"></div>
+      <div><label class="lb">สิ้นสุด</label><input name="EndDate" type="date" class="ip"></div>
+    </div>
+    <div class="mt-3 flex justify-end gap-2">
+      <button type="button" onclick="closeModal()" class="rounded-xl bg-slate-100 px-5 py-2.5">ยกเลิก</button>
+      <button class="rounded-xl bg-blue-700 px-5 py-2.5 text-white">บันทึก</button>
+    </div>
+  </form>`);
+}
+
+async function saveNotice(e){
+  e.preventDefault();
+  try{ await api('saveNotice',{token:S.token,record:fd(e.target)}); closeModal(); toast('สร้างประกาศเรียบร้อย'); loadApp(); }
+  catch(ex){err(ex);}
+}
+
+/* ---------- USERS ---------- */
+function renderUsers(){
+  if(S.role!=='Admin')return;
+  document.getElementById('uTable').innerHTML=(D.users||[]).map(u=>`
+    <tr class="border-t hover:bg-slate-50">
+      <td class="p-4 font-medium">${esc(u.FullName)}</td>
+      <td class="p-4">${esc(u.Email)}</td>
+      <td class="p-4"><span class="rounded-full bg-blue-50 px-2 py-1 text-xs text-blue-700">${esc(ROLE_TH[u.Role]||u.Role)}</span></td>
+      <td class="p-4 text-xs">${esc(tName(u.TeacherId))}</td>
+      <td class="p-4">${String(u.Active).toUpperCase()==='TRUE'?'✅ ใช้งาน':'⛔ ปิด'}</td>
+      <td class="p-4 whitespace-nowrap">
+        <button onclick='userForm(${JSON.stringify(u)})' class="rounded-lg bg-blue-50 px-2 py-1 text-xs text-blue-700">แก้ไข</button>
+        <button onclick="toggleUser('${u.UserId}',${String(u.Active).toUpperCase()!=='TRUE'})" class="rounded-lg bg-slate-100 px-2 py-1 text-xs">${String(u.Active).toUpperCase()==='TRUE'?'ปิดใช้งาน':'เปิดใช้งาน'}</button>
+      </td>
+    </tr>`).join('');
+}
+
+function userForm(u){
+  u=u||{};
+  const opts=(D.teachers||[]).map(t=>`<option value="${t.TeacherId}" ${u.TeacherId===t.TeacherId?'selected':''}>${esc(t.FullName)}</option>`).join('');
+
+  modal(u.UserId?'แก้ไขผู้ใช้งาน':'เพิ่มผู้ใช้งาน',`
+  <form onsubmit="saveUser(event)" class="grid gap-3">
+    <input type="hidden" name="UserId" value="${u.UserId||''}">
+    <div><label class="lb">ชื่อ-นามสกุล *</label><input name="FullName" required class="ip" value="${esc(u.FullName||'')}"></div>
+    <div><label class="lb">อีเมล *</label><input name="Email" type="email" required class="ip" value="${esc(u.Email||'')}"></div>
+    <div><label class="lb">รหัสผ่าน ${u.UserId?'(เว้นว่างหากไม่เปลี่ยน)':'*'}</label><input name="Password" type="password" ${u.UserId?'':'required'} class="ip" placeholder="อย่างน้อย 8 ตัวอักษร"></div>
+    <div><label class="lb">บทบาท *</label><select name="Role" class="ip">
+      ${[['Teacher','อาจารย์'],['QA','เจ้าหน้าที่ QA'],['Head','หัวหน้าภาควิชา'],['Admin','ผู้ดูแลระบบ']]
+        .map(r=>`<option value="${r[0]}" ${u.Role===r[0]?'selected':''}>${r[1]}</option>`).join('')}</select></div>
+    <div><label class="lb">เชื่อมโยงข้อมูลอาจารย์</label><select name="TeacherId" class="ip"><option value="">-- ไม่เชื่อมโยง --</option>${opts}</select></div>
+    <div><label class="lb">สถานะ</label><select name="Active" class="ip"><option value="TRUE" ${String(u.Active).toUpperCase()!=='FALSE'?'selected':''}>ใช้งาน</option><option value="FALSE" ${String(u.Active).toUpperCase()==='FALSE'?'selected':''}>ปิดใช้งาน</option></select></div>
+    <div class="mt-3 flex justify-end gap-2">
+      <button type="button" onclick="closeModal()" class="rounded-xl bg-slate-100 px-5 py-2.5">ยกเลิก</button>
+      <button class="rounded-xl bg-blue-700 px-5 py-2.5 text-white">บันทึก</button>
+    </div>
+  </form>`);
+}
+
+async function saveUser(e){
+  e.preventDefault();
+  try{ await api('saveUser',{token:S.token,record:fd(e.target)}); closeModal(); toast('บันทึกผู้ใช้งานเรียบร้อย'); loadApp(); }
+  catch(ex){err(ex);}
+}
+
+async function toggleUser(id,active){
+  if(!confirm('ยืนยันการเปลี่ยนสถานะผู้ใช้นี้?'))return;
+  try{ await api('toggleUser',{token:S.token,userId:id,active}); toast('อัปเดตสถานะแล้ว'); loadApp(); }catch(ex){err(ex);}
+}
+
+function openPassword(){
+  modal('เปลี่ยนรหัสผ่าน',`
+  <form onsubmit="changePw(event)" class="grid gap-3">
+    <div><label class="lb">รหัสผ่านเดิม *</label><input name="oldPassword" type="password" required class="ip"></div>
+    <div><label class="lb">รหัสผ่านใหม่ *</label><input name="newPassword" type="password" required class="ip" placeholder="อย่างน้อย 8 ตัวอักษร"></div>
+    <div class="mt-3 flex justify-end gap-2">
+      <button type="button" onclick="closeModal()" class="rounded-xl bg-slate-100 px-5 py-2.5">ยกเลิก</button>
+      <button class="rounded-xl bg-blue-700 px-5 py-2.5 text-white">เปลี่ยนรหัสผ่าน</button>
+    </div>
+  </form>`);
+}
+
+async function changePw(e){
+  e.preventDefault();
+  const d=fd(e.target);
+  try{ await api('changePassword',{token:S.token,...d}); closeModal(); toast('เปลี่ยนรหัสผ่านเรียบร้อย'); }
+  catch(ex){err(ex);}
+}
+
+/* ---------- SETTINGS ---------- */
+function renderSettings(){
+  if(S.role!=='Admin')return;
+  const o={}; (D.settings||[]).forEach(x=>o[x.SettingKey]=x.SettingValue);
+  ['SYSTEM_NAME','DEPARTMENT_NAME','FACULTY_NAME','UNIVERSITY_NAME','CURRENT_YEAR','ADMIN_NOTIFICATION_EMAIL','REPORT_FOLDER_ID','GEMINI_MODEL']
+    .forEach(k=>{const el=document.getElementById(k); if(el)el.value=o[k]||'';});
+  document.getElementById('EMAIL_ENABLED').checked=String(o.EMAIL_ENABLED).toUpperCase()==='TRUE';
+  document.getElementById('PUBLIC_AI_ENABLED').checked=String(o.PUBLIC_AI_ENABLED).toUpperCase()==='TRUE';
+}
+
+async function saveSet(e){
+  e.preventDefault();
+  const s={};
+  ['SYSTEM_NAME','DEPARTMENT_NAME','FACULTY_NAME','UNIVERSITY_NAME','CURRENT_YEAR','ADMIN_NOTIFICATION_EMAIL','REPORT_FOLDER_ID','GEMINI_API_KEY','GEMINI_MODEL']
+    .forEach(k=>s[k]=document.getElementById(k).value);
+  s.EMAIL_ENABLED=document.getElementById('EMAIL_ENABLED').checked?'TRUE':'FALSE';
+  s.PUBLIC_AI_ENABLED=document.getElementById('PUBLIC_AI_ENABLED').checked?'TRUE':'FALSE';
+  try{ await api('saveSettings',{token:S.token,settings:s}); toast('บันทึกการตั้งค่าเรียบร้อย'); document.getElementById('GEMINI_API_KEY').value=''; loadApp(); }
+  catch(ex){err(ex);}
+}
+
+/* ---------- REPORT / LOG ---------- */
+async function makeReport(type){
+  const box=document.getElementById('rResult');
+  box.innerHTML='<div class="rounded-xl bg-blue-50 p-4 text-sm text-blue-700">กำลังสร้างรายงาน PDF...</div>';
+  try{
+    const f=await api('report',{token:S.token,type,year:document.getElementById('rYear').value});
+    box.innerHTML=`<div class="rounded-xl bg-emerald-50 p-4 text-sm text-emerald-800">
+      <p class="font-bold">สร้างรายงานสำเร็จ (${f.rows} รายการ)</p>
+      <p class="mt-1 break-all">${esc(f.fileName)}</p>
+      <div class="mt-3 flex flex-wrap gap-2">
+        <a href="${f.url}" target="_blank" class="rounded-lg bg-emerald-600 px-4 py-2 text-white">เปิดใน Drive</a>
+        <a href="${f.downloadUrl}" target="_blank" class="rounded-lg bg-slate-700 px-4 py-2 text-white">ดาวน์โหลด PDF</a>
+      </div></div>`;
+  }catch(ex){ box.innerHTML=`<div class="rounded-xl bg-red-50 p-4 text-sm text-red-700">${esc(ex.message)}</div>`; }
+}
+
+function renderLogs(){
+  if(S.role!=='Admin')return;
+  document.getElementById('lTable').innerHTML=(D.logs||[]).map(l=>`
+    <tr class="border-t"><td class="p-3 text-xs">${esc(l.CreatedAt)}</td><td class="p-3"><span class="rounded bg-slate-100 px-2 py-0.5 text-xs">${esc(l.Action)}</span></td>
+    <td class="p-3 text-xs">${esc(l.Entity)}</td><td class="p-3 truncate text-xs text-slate-500" style="max-width:400px">${esc(l.Detail)}</td></tr>`).join('');
+}
+
+/* ---------- COMMON ---------- */
+async function del(entity,id){
+  if(!confirm('ยืนยันการลบข้อมูลนี้?'))return;
+  try{ await api('remove',{token:S.token,entity,id}); toast('ลบข้อมูลเรียบร้อย'); loadApp(); }catch(ex){err(ex);}
+}
+function modal(t,h){document.getElementById('mTitle').textContent=t;document.getElementById('mBody').innerHTML=h;
+  const m=document.getElementById('modal');m.classList.remove('hidden');m.classList.add('flex');
+  m.querySelectorAll('.ip').forEach(e=>e.classList.add('w-full','rounded-xl','border','border-slate-200','px-3','py-2.5','outline-none','focus:border-blue-600'));
+  m.querySelectorAll('.lb').forEach(e=>e.classList.add('mb-1','block','text-sm','font-medium','text-slate-600'));}
+function closeModal(){const m=document.getElementById('modal');m.classList.add('hidden');m.classList.remove('flex');}
+function fd(f){return Object.fromEntries(new FormData(f).entries());}
+function badge(s){return {Approved:'<span class="rounded-full bg-emerald-100 px-2 py-1 text-xs text-emerald-700">อนุมัติ</span>',
+  Pending:'<span class="rounded-full bg-amber-100 px-2 py-1 text-xs text-amber-700">รออนุมัติ</span>',
+  Rejected:'<span class="rounded-full bg-red-100 px-2 py-1 text-xs text-red-700">ปฏิเสธ</span>'}[s]||`<span class="rounded-full bg-slate-100 px-2 py-1 text-xs">${esc(s||'-')}</span>`;}
+function esc(v){return String(v===undefined||v===null?'':v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c]));}
+
+function drawBar(id,obj,label,color){
+  const el=document.getElementById(id); if(!el)return;
+  if(charts[id])charts[id].destroy();
+  const keys=Object.keys(obj||{}).sort();
+  charts[id]=new Chart(el,{type:'bar',data:{labels:keys,datasets:[{label,data:keys.map(k=>obj[k]),backgroundColor:color||'#2563eb',borderRadius:6}]},
+    options:{plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,ticks:{precision:0}}}}});
+}
+function drawPie(id,obj){
+  const el=document.getElementById(id); if(!el)return;
+  if(charts[id])charts[id].destroy();
+  const keys=Object.keys(obj||{});
+  charts[id]=new Chart(el,{type:'doughnut',data:{labels:keys,datasets:[{data:keys.map(k=>obj[k]),
+    backgroundColor:['#2563eb','#059669','#d97706','#7c3aed','#dc2626','#0891b2','#db2777']}]},
+    options:{plugins:{legend:{position:'bottom',labels:{boxWidth:12,font:{size:11}}}}}});
+}
+
+/* ---------- INIT ---------- */
+if(API_URL.indexOf('วาง_')!==-1){
+  document.body.innerHTML='<div class="flex min-h-screen items-center justify-center p-6"><div class="max-w-lg rounded-2xl bg-white p-8 text-center shadow"><p class="text-5xl">⚠️</p><h1 class="mt-4 text-xl font-bold">ยังไม่ได้ตั้งค่า API_URL</h1><p class="mt-2 text-slate-600">กรุณาเปิดไฟล์ index.html แล้ววาง URL ของ Google Apps Script Web App (ลงท้ายด้วย /exec) ในตัวแปร <code class="rounded bg-slate-100 px-2">API_URL</code></p></div></div>';
+}else{
+  loadPublic();
+}
+</script>
+</body>
+</html>
