@@ -573,7 +573,34 @@ async function doLogout(){
   localStorage.removeItem('tdb_token');
   location.reload();
 }
+function enterApp(){
+  closeLogin();
+  document.getElementById('pubPage').classList.add('hidden');
+  document.getElementById('app').classList.remove('hidden');
+  
+  // 1. ใส่ชื่อและบทบาท
+  document.getElementById('uName').textContent = ME.fullName;
+  document.getElementById('uRole').textContent = ROLE_TH[ME.role] || ME.role;
 
+  // 2. สร้างเมนู (ตรวจสอบบรรทัดนี้ว่ามีอยู่ในโค้ดคุณไหม)
+  const menuContainer = document.getElementById('menu');
+  menuContainer.innerHTML = MENU.filter(m => m.roles.includes(ME.role))
+    .map(m => `<button onclick="go('${m.id}')" data-v="${m.id}" class="nb w-full rounded-xl px-4 py-3 text-left text-sm transition hover:bg-blue-50">${m.label}</button>`)
+    .join('');
+
+  // 3. แสดงเมนูพิเศษสำหรับ Admin
+  if(ME.role === 'Admin'){
+    document.getElementById('mNotice').classList.remove('hidden');
+    document.getElementById('mUsers').classList.remove('hidden');
+    document.getElementById('mSet').classList.remove('hidden');
+    document.getElementById('mLog').classList.remove('hidden');
+    document.getElementById('pfAdminBar').classList.remove('hidden');
+    document.getElementById('pfStatusBox').classList.remove('hidden');
+  }
+
+  loadApp();
+  go('dash');
+}
 /* ---------- APP ---------- */
 async function loadApp(){
   try{
