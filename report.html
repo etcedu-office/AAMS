@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FATS - รายงานสรุปผลการดำเนินงาน</title>
+  
+  <!-- Tailwind CSS & Utilities -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+  <style>
+    body { font-family: 'Sarabun', sans-serif; }
+    
+    /* ตั้งค่าสำหรับการพิมพ์รายงาน (Print / Export PDF) */
+    @media print {
+      .no-print { display: none !important; }
+      body { background-color: #ffffff !important; font-size: 12pt; }
+      .print-shadow-none { shadow: none !important; border: 1px solid #e2e8f0 !important; }
+      .page-break { page-break-before: always; }
+    }
+  </style>
+</head>
+<body class="bg-slate-100 text-slate-800 min-h-screen">
+
+  <!-- Header / Action Bar (ซ่อนเมื่อกดพิมพ์) -->
+  <header class="bg-slate-900 text-white p-4 shadow-md no-print sticky top-0 z-30">
+    <div class="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center space-y-3 md:space-y-0">
+      <div class="flex items-center space-x-3">
+        <div class="p-2 bg-indigo-600 rounded-lg">
+          <i class="fa-solid fa-file-contract text-xl"></i>
+        </div>
+        <div>
+          <h1 class="font-bold text-lg leading-tight">ระบบออกรายงานสรุป FATS</h1>
+          <p class="text-xs text-slate-400">Executive Analytics & Performance Report</p>
+        </div>
+      </div>
+      
+      <div class="flex items-center space-x-2">
+        <button onclick="window.print()" class="bg-indigo-600 hover:bg-indigo-700 text-white text-sm px-4 py-2 rounded-lg font-medium transition flex items-center space-x-2">
+          <i class="fa-solid fa-print"></i><span>พิมพ์รายงาน / พิมพ์เป็น PDF</span>
+        </button>
+        <a href="index.html" class="bg-slate-800 hover:bg-slate-700 text-slate-300 text-sm px-4 py-2 rounded-lg font-medium transition flex items-center space-x-2">
+          <i class="fa-solid fa-arrow-left"></i><span>กลับหน้าหลัก</span>
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Container -->
+  <main class="max-w-7xl mx-auto p-4 md:p-8 space-y-6">
+
+    <!-- Filter Bar (ซ่อนเมื่อกดพิมพ์) -->
+    <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200 no-print flex flex-col md:flex-row justify-between items-center gap-4">
+      <div class="flex flex-wrap items-center gap-3 w-full md:w-auto">
+        <div>
+          <label class="block text-xs font-semibold text-slate-500 mb-1">เลือกผู้ใช้งาน</label>
+          <select id="filter-user" onchange="fetchReportData()" class="border border-slate-300 rounded-lg px-3 py-1.5 text-sm focus:ring-2 focus:ring-indigo-500 outline-none">
+            <option value="ALL">ภาพรวมทั้งหมด (ผู้ดูแลระบบ)</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-500 mb-1">หมวดภาระงาน</label>
+          <select id="filter-module" onchange="applyFilters()" class="border border-slate-300 rounded-lg px-3 py-1.5 text-sm focus:ring-2 focus:ring-indigo-500 outline-none">
+            <option value="ALL">ทุกหมวดงาน</option>
+            <option value="Teaching_Data">ภาระการสอน</option>
+            <option value="Research_Data">โครงการวิจัย</option>
+            <option value="Culture_Data">ทำนุบำรุงศิลปวัฒนธรรม</option>
+            <option value="AcademicService_Data">บริการวิชาการ</option>
+            <option value="OrgDev_Data">การพัฒนาองค์กร</option>
+            <option value="Academic_Data">ผลงานทางวิชาการ</option>
+          </select>
+        </div>
+      </div>
+      
+      <div class="text-xs text-slate-500 italic">
+        * ข้อมูล ณ วันที่: <span id="report-date" class="font-bold text-slate-700"></span>
+      </div>
+    </div>
+
+    <!-- Printable Header (แสดงเมื่อกดพิมพ์ หรือดูหน้าเว็บ) -->
+    <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200 print-shadow-none text-center space-y-2">
+      <h2 class="text-2xl font-bold text-slate-900">รายงานสรุปผลการดำเนินงานและภาระงานวิชาการ</h2>
+      <p id="report-scope-title" class="text-sm font-medium text-slate-600">สรุปภาพรวมทั้งองค์กร (FATS Summary Report)</p>
+    </div>
+
+    <!-- Summary KPI Cards -->
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div class="bg-white p-5 rounded-xl border border-slate-200 print-shadow-none">
+        <p class="text-xs font-medium text-slate-500">รายการยื่นรวมทั้งหมด</p>
+        <h3 id="kpi-total" class="text-3xl font-extrabold text-slate-800 mt-2">0</h3>
+        <span class="text-[10px] text-slate-400">รายการในระบบ</span>
+      </div>
+      <div class="bg-white p-5 rounded-xl border border-emerald-200 print-shadow-none bg-emerald-50/30">
+        <p class="text-xs font-medium text-emerald-700">ผ่านการอนุมัติ (Approved)</p>
+        <h3 id="kpi-approved" class="text-3xl font-extrabold text-emerald-600 mt-2">0</h3>
+        <span id="kpi-approved-pct" class="text-[10px] text-emerald-600 font-semibold">0% ของทั้งหมด</span>
+      </div>
+      <div class="bg-white p-5 rounded-xl border border-amber-200 print-shadow-none bg-amber-50/30">
+        <p class="text-xs font-medium text-amber-700">อยู่ระหว่างตรวจสอบ (Pending)</p>
+        <h3 id="kpi-pending" class="text-3xl font-extrabold text-amber-600 mt-2">0</h3>
+        <span class="text-[10px] text-amber-600">รอผู้ดูแลอนุมัติ</span>
+      </div>
+      <div class="bg-white p-5 rounded-xl border border-indigo-200 print-shadow-none bg-indigo-50/30">
+        <p class="text-xs font-medium text-indigo-700">งบประมาณวิจัยรวม</p>
+        <h3 id="kpi-budget" class="text-2xl font-extrabold text-indigo-600 mt-2">฿0</h3>
+        <span class="text-[10px] text-indigo-500">งบประมาณสนับสนุน</span>
+      </div>
+    </div>
+
+    <!-- Charts Section -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div class="bg-white p-6 rounded-xl border border-slate-200 print-shadow-none space-y-4">
+        <h4 class="text-sm font-bold text-slate-800 border-b pb-2 flex items-center justify-between">
+          <span>สัดส่วนสถานะการอนุมัติ</span>
+          <i class="fa-solid fa-chart-pie text-slate-400"></i>
+        </h4>
+        <div class="h-64 relative">
+          <canvas id="chartStatus"></canvas>
+        </div>
+      </div>
+
+      <div class="bg-white p-6 rounded-xl border border-slate-200 print-shadow-none space-y-4">
+        <h4 class="text-sm font-bold text-slate-800 border-b pb-2 flex items-center justify-between">
+          <span>จำนวนภาระงานจำแนกตามหมวด</span>
+          <i class="fa-solid fa-chart-column text-slate-400"></i>
+        </h4>
+        <div class="h-64 relative">
+          <canvas id="chartModule"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <!-- Summary Breakdown Table -->
+    <div class="bg-white rounded-xl border border-slate-200 print-shadow-none overflow-hidden shadow-sm">
+      <div class="p-4 border-b border-slate-200 bg-slate-50 flex justify-between items-center">
+        <h4 class="text-sm font-bold text-slate-800">ตารางสรุปรายละเอียดจำแนกตามหมวดงาน</h4>
+        <span class="text-xs text-slate-500" id="table-count-label"></span>
+      </div>
+      <div class="overflow-x-auto">
+        <table class="w-full text-left text-sm border-collapse">
+          <thead>
+            <tr class="bg-slate-100 text-slate-700 border-b border-slate-200 text-xs font-bold uppercase">
+              <th class="p-3">หมวดงาน</th>
+              <th class="p-3 text-center">รวม (รายการ)</th>
+              <th class="p-3 text-center text-emerald-600">อนุมัติแล้ว</th>
+              <th class="p-3 text-center text-amber-600">รอตรวจสอบ</th>
+              <th class="p-3 text-center text-rose-600">ต้องแก้ไข</th>
+              <th class="p-3 text-right">หน่วยกิต / ชม. / งบประมาณ</th>
+            </tr>
+          </thead>
+          <tbody id="summary-table-body" class="divide-y divide-slate-200">
+            <!-- Dynamic Data -->
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Signature Block for Print -->
+    <div class="hidden print:block pt-12">
+      <div class="flex justify-between items-end text-center text-xs text-slate-700">
+        <div class="space-y-12">
+          <p>ลงชื่อ..........................................................<br>(..........................................................)<br>ผู้รายงาน</p>
+        </div>
+        <div class="space-y-12">
+          <p>ลงชื่อ..........................................................<br>(..........................................................)<br>ผู้ดูแลระบบ / ผู้รับรอง</p>
+        </div>
+      </div>
+    </div>
+
+  </main>
+
+  <script>
+    const API_URL = "https://script.google.com/macros/s/AKfycbwQPuythEAg_buMCypnF3JMTgMCAW40JyiZXPklazarmrS5SitxQucGiqqOCtmZzmdz8w/exec";
+    let rawMetricsData = null;
+    let chartStatusInstance = null;
+    let chartModuleInstance = null;
+
+    document.addEventListener('DOMContentLoaded', () => {
+      document.getElementById('report-date').innerText = new Date().toLocaleDateString('th-TH', { year: 'numeric', month: 'long', day: 'numeric' });
+      fetchReportData();
+    });
+
+    function fetchReportData() {
+      const selectedEmail = document.getElementById('filter-user').value;
+      const targetEmail = selectedEmail === 'ALL' ? 'admin@msu.ac.th' : selectedEmail;
+
+      Swal.fire({ title: 'กำลังโหลดข้อมูลรายงาน...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+
+      fetch(`${API_URL}?action=getDashboardMetrics&email=${encodeURIComponent(targetEmail)}`)
+        .then(res => res.json())
+        .then(data => {
+          Swal.close();
+          rawMetricsData = data;
+          renderReport(data);
+        })
+        .catch(err => {
+          Swal.fire('Error', 'ไม่สามารถโหลดข้อมูลรายงานได้', 'error');
+        });
+    }
+
+    function renderReport(metrics) {
+      const counts = metrics.statusCounts;
+      const total = counts.Approved + counts.Pending + counts.NeedsRevision + counts.Draft;
+      const approvedPct = total > 0 ? Math.round((counts.Approved / total) * 100) : 0;
+
+      // Update KPI Cards
+      document.getElementById('kpi-total').innerText = total.toLocaleString();
+      document.getElementById('kpi-approved').innerText = counts.Approved.toLocaleString();
+      document.getElementById('kpi-approved-pct').innerText = `${approvedPct}% ของทั้งหมด`;
+      document.getElementById('kpi-pending').innerText = counts.Pending.toLocaleString();
+      document.getElementById('kpi-budget').innerText = '฿' + (metrics.totalResearchBudget || 0).toLocaleString();
+
+      // Render Charts
+      renderStatusChart(counts);
+      renderModuleChart(metrics);
+
+      // Render Summary Table
+      renderSummaryTable(metrics);
+    }
+
+    function renderStatusChart(counts) {
+      const ctx = document.getElementById('chartStatus').getContext('2d');
+      if (chartStatusInstance) chartStatusInstance.destroy();
+
+      chartStatusInstance = new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+          labels: ['อนุมัติแล้ว (Approved)', 'รอตรวจสอบ (Pending)', 'ส่งกลับแก้ไข (Needs Revision)', 'ฉบับร่าง (Draft)'],
+          datasets: [{
+            data: [counts.Approved, counts.Pending, counts.NeedsRevision, counts.Draft],
+            backgroundColor: ['#10b981', '#f59e0b', '#ef4444', '#94a3b8']
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { position: 'bottom' } }
+        }
+      });
+    }
+
+    function renderModuleChart(metrics) {
+      const ctx = document.getElementById('chartModule').getContext('2d');
+      if (chartModuleInstance) chartModuleInstance.destroy();
+
+      chartModuleInstance = new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: ['ภาระการสอน', 'โครงการวิจัย', 'ศิลปวัฒนธรรม', 'บริการวิชาการ', 'พัฒนาองค์กร', 'ผลงานวิชาการ'],
+          datasets: [{
+            label: 'จำนวนตัวเลขสะสม',
+            data: [
+              metrics.totalTeachingCredits,
+              metrics.totalResearchBudget > 0 ? 1 : 0,
+              metrics.totalCultureProjects,
+              metrics.totalAcademicServices,
+              metrics.totalOrgDevHours,
+              metrics.totalAcademicWorks
+            ],
+            backgroundColor: '#4f46e5'
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { display: false } }
+        }
+      });
+    }
+
+    function renderSummaryTable(metrics) {
+      const tbody = document.getElementById('summary-table-body');
+      
+      const rows = [
+        { name: 'ภาระการสอน (Teaching)', total: '-', approved: '-', pending: '-', revision: '-', value: `${metrics.totalTeachingCredits} หน่วยกิต` },
+        { name: 'โครงการวิจัย (Research)', total: '-', approved: '-', pending: '-', revision: '-', value: `฿${metrics.totalResearchBudget.toLocaleString()}` },
+        { name: 'ทำนุบำรุงศิลปวัฒนธรรม (Culture)', total: metrics.totalCultureProjects, approved: '-', pending: '-', revision: '-', value: `${metrics.totalCultureProjects} โครงการ` },
+        { name: 'บริการวิชาการ (Academic Services)', total: metrics.totalAcademicServices, approved: '-', pending: '-', revision: '-', value: `${metrics.totalAcademicServices} โครงการ` },
+        { name: 'การพัฒนาองค์กร (Org Dev)', total: '-', approved: '-', pending: '-', revision: '-', value: `${metrics.totalOrgDevHours} ชั่วโมง` },
+        { name: 'ผลงานทางวิชาการ (Academic Works)', total: metrics.totalAcademicWorks, approved: '-', pending: '-', revision: '-', value: `${metrics.totalAcademicWorks} ผลงาน` }
+      ];
+
+      tbody.innerHTML = rows.map(r => `
+        <tr class="hover:bg-slate-50">
+          <td class="p-3 font-semibold text-slate-800">${r.name}</td>
+          <td class="p-3 text-center">${r.total}</td>
+          <td class="p-3 text-center text-emerald-600 font-semibold">${r.approved}</td>
+          <td class="p-3 text-center text-amber-600">${r.pending}</td>
+          <td class="p-3 text-center text-rose-600">${r.revision}</td>
+          <td class="p-3 text-right font-bold text-indigo-700">${r.value}</td>
+        </tr>
+      `).join('');
+    }
+
+    function applyFilters() {
+      // ฟังก์ชันสำหรับกรองข้อมูลเมื่อเปลี่ยนตัวเลือกใน Filter Dropdown
+      const selectedModule = document.getElementById('filter-module').value;
+      if (!rawMetricsData) return;
+      renderReport(rawMetricsData);
+    }
+  </script>
+</body>
+</html>
