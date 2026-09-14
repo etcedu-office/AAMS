@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>FATS - Academic Performance Tracking System</title>
+  <title>FATS - Academic Performance Tracking & Reporting System</title>
   
   <!-- CDN Libraries -->
   <script src="https://cdn.tailwindcss.com"></script>
@@ -33,15 +33,15 @@
   <aside class="w-64 bg-slate-900 text-white flex flex-col justify-between hidden md:flex">
     <div>
       <div class="p-6 border-b border-slate-800 flex items-center space-x-3">
-        <i class="fa-solid fa-graduation-cap text-indigo-400 text-2xl"></i>
+        <i class="fa-solid fa-chart-line text-indigo-400 text-2xl"></i>
         <div>
           <h1 class="font-bold text-lg leading-tight">FATS System</h1>
-          <p class="text-xs text-slate-400">ระบบติดตามภาระงานวิชาการ</p>
+          <p class="text-xs text-slate-400">ระบบติดตาม & รายงานภาระงาน</p>
         </div>
       </div>
       <nav class="p-4 space-y-1 text-sm">
         <button onclick="switchView('dashboard')" class="w-full flex items-center space-x-3 px-4 py-3 rounded-lg hover:bg-slate-800 transition active-tab" id="nav-dashboard">
-          <i class="fa-solid fa-chart-pie w-5 text-indigo-400"></i><span>Dashboard</span>
+          <i class="fa-solid fa-chart-pie w-5 text-indigo-400"></i><span>รายงาน & Dashboard</span>
         </button>
         <button onclick="switchView('Teaching_Data')" class="w-full flex items-center space-x-3 px-4 py-3 rounded-lg hover:bg-slate-800 transition" id="nav-Teaching_Data">
           <i class="fa-solid fa-chalkboard-user w-5 text-indigo-400"></i><span>ภาระการสอน</span>
@@ -64,7 +64,7 @@
       </nav>
     </div>
     <div class="p-4 border-t border-slate-800 text-xs text-slate-400 text-center">
-      FATS Web Client Hosted Version
+      FATS Analytics & Tracking Client
     </div>
   </aside>
 
@@ -72,9 +72,12 @@
   <main class="flex-1 flex flex-col h-screen overflow-y-auto">
     <!-- Header Bar -->
     <header class="bg-white border-b border-slate-200 px-6 py-4 flex justify-between items-center sticky top-0 z-10">
-      <h2 id="view-title" class="text-xl font-bold text-slate-800">Dashboard สรุปภาพรวม</h2>
+      <div>
+        <h2 id="view-title" class="text-xl font-bold text-slate-800">รายงาน & Analytics</h2>
+        <p id="role-subtitle" class="text-xs text-slate-500">กำลังโหลดสิทธิ์การใช้งาน...</p>
+      </div>
       <div class="flex items-center space-x-4">
-        <button onclick="changeUserEmail()" id="user-badge" class="bg-indigo-50 hover:bg-indigo-100 text-indigo-700 px-3 py-1 rounded-full text-xs font-semibold cursor-pointer">
+        <button onclick="changeUserEmail()" id="user-badge" class="bg-indigo-50 hover:bg-indigo-100 text-indigo-700 px-3 py-1.5 rounded-full text-xs font-semibold cursor-pointer border border-indigo-200">
           Loading User...
         </button>
         <button id="btn-add-record" onclick="openModal()" class="hidden bg-indigo-600 hover:bg-indigo-700 text-white text-sm px-4 py-2 rounded-lg font-medium transition flex items-center space-x-2">
@@ -86,41 +89,105 @@
     <!-- Content Sections Container -->
     <div class="p-6 space-y-6 flex-1">
       
-      <!-- DASHBOARD VIEW -->
+      <!-- DASHBOARD & REPORT VIEW -->
       <section id="view-dashboard" class="space-y-6">
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex items-center space-x-4">
-            <div class="p-3 bg-blue-100 text-blue-600 rounded-lg"><i class="fa-solid fa-book-open text-xl"></i></div>
-            <div><p class="text-xs text-slate-500 font-medium">หน่วยกิตการสอนรวม</p><h3 id="kpi-teaching" class="text-2xl font-bold text-slate-800">0</h3></div>
+        
+        <!-- ==================== USER REPORT SECTION ==================== -->
+        <div id="report-user-container" class="space-y-6 hidden">
+          <div class="bg-indigo-900 text-white p-6 rounded-2xl shadow-sm flex justify-between items-center">
+            <div>
+              <span class="bg-indigo-700 text-indigo-100 text-xs px-3 py-1 rounded-full font-medium">Personal Performance Report</span>
+              <h3 class="text-2xl font-bold mt-2">รายงานสรุปผลงานส่วนบุคคล</h3>
+              <p class="text-xs text-indigo-200 mt-1" id="user-report-email-label">แสดงข้อมูลเฉพาะการยื่นผลงานของคุณ</p>
+            </div>
+            <div class="hidden sm:block text-right">
+              <button onclick="loadDashboard()" class="bg-white/10 hover:bg-white/20 text-white text-xs px-3 py-2 rounded-lg transition">
+                <i class="fa-solid fa-rotate mr-1"></i>อัปเดตข้อมูล
+              </button>
+            </div>
           </div>
-          <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex items-center space-x-4">
-            <div class="p-3 bg-emerald-100 text-emerald-600 rounded-lg"><i class="fa-solid fa-sack-dollar text-xl"></i></div>
-            <div><p class="text-xs text-slate-500 font-medium">งบประมาณโครงการวิจัย</p><h3 id="kpi-research" class="text-2xl font-bold text-slate-800">฿0</h3></div>
+
+          <!-- User KPI Cards -->
+          <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+              <p class="text-xs text-slate-500 font-medium">ผลงานยื่นทั้งหมด</p>
+              <h3 id="user-kpi-total" class="text-2xl font-bold text-slate-800 mt-1">0</h3>
+            </div>
+            <div class="bg-white p-4 rounded-xl border border-emerald-200 shadow-sm">
+              <p class="text-xs text-emerald-600 font-medium">อนุมัติเรียบร้อย</p>
+              <h3 id="user-kpi-approved" class="text-2xl font-bold text-emerald-700 mt-1">0</h3>
+            </div>
+            <div class="bg-white p-4 rounded-xl border border-amber-200 shadow-sm">
+              <p class="text-xs text-amber-600 font-medium">อยู่ระหว่างตรวจสอบ</p>
+              <h3 id="user-kpi-pending" class="text-2xl font-bold text-amber-700 mt-1">0</h3>
+            </div>
+            <div class="bg-white p-4 rounded-xl border border-rose-200 shadow-sm">
+              <p class="text-xs text-rose-600 font-medium">ต้องแก้ไข / ส่งกลับ</p>
+              <h3 id="user-kpi-revision" class="text-2xl font-bold text-rose-700 mt-1">0</h3>
+            </div>
           </div>
-          <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex items-center space-x-4">
-            <div class="p-3 bg-purple-100 text-purple-600 rounded-lg"><i class="fa-solid fa-palette text-xl"></i></div>
-            <div><p class="text-xs text-slate-500 font-medium">โครงการทำนุบำรุงศิลปฯ</p><h3 id="kpi-culture" class="text-2xl font-bold text-slate-800">0</h3></div>
-          </div>
-          <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex items-center space-x-4">
-            <div class="p-3 bg-amber-100 text-amber-600 rounded-lg"><i class="fa-solid fa-hands-holding-child text-xl"></i></div>
-            <div><p class="text-xs text-slate-500 font-medium">โครงการบริการวิชาการ</p><h3 id="kpi-services" class="text-2xl font-bold text-slate-800">0</h3></div>
-          </div>
-          <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex items-center space-x-4">
-            <div class="p-3 bg-cyan-100 text-cyan-600 rounded-lg"><i class="fa-solid fa-clock text-xl"></i></div>
-            <div><p class="text-xs text-slate-500 font-medium">ชม. พัฒนาองค์กร</p><h3 id="kpi-orgdev" class="text-2xl font-bold text-slate-800">0</h3></div>
-          </div>
-          <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex items-center space-x-4">
-            <div class="p-3 bg-rose-100 text-rose-600 rounded-lg"><i class="fa-solid fa-newspaper text-xl"></i></div>
-            <div><p class="text-xs text-slate-500 font-medium">ผลงานวิชาการรวม</p><h3 id="kpi-academic" class="text-2xl font-bold text-slate-800">0</h3></div>
+
+          <!-- User Charts -->
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
+              <h4 class="font-bold text-slate-700 text-sm mb-4"><i class="fa-solid fa-chart-pie mr-2 text-indigo-500"></i>สัดส่วนสถานะการอนุมัติงานของคุณ</h4>
+              <div class="h-64"><canvas id="userStatusChart"></canvas></div>
+            </div>
+            <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
+              <h4 class="font-bold text-slate-700 text-sm mb-4"><i class="fa-solid fa-chart-bar mr-2 text-indigo-500"></i>ปริมาณงานแยกตามหมวดหมู่</h4>
+              <div class="h-64"><canvas id="userModuleChart"></canvas></div>
+            </div>
           </div>
         </div>
 
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
-            <h4 class="font-bold text-slate-700 text-sm mb-4">สถานะการอนุมัติผลงานทั้งหมด</h4>
-            <div class="h-64"><canvas id="statusChart"></canvas></div>
+        <!-- ==================== ADMIN REPORT SECTION ==================== -->
+        <div id="report-admin-container" class="space-y-6 hidden">
+          <div class="bg-slate-900 text-white p-6 rounded-2xl shadow-sm flex justify-between items-center">
+            <div>
+              <span class="bg-amber-500 text-slate-900 text-xs px-3 py-1 rounded-full font-bold">Executive Dashboard</span>
+              <h3 class="text-2xl font-bold mt-2">รายงานสรุปสำหรับผู้ดูแลระบบ</h3>
+              <p class="text-xs text-slate-400 mt-1">ภาพรวมการยื่นภาระงานวิชาการของทั้งองค์กร/หน่วยงาน</p>
+            </div>
+            <div class="hidden sm:block">
+              <button onclick="loadDashboard()" class="bg-slate-800 hover:bg-slate-700 text-white text-xs px-3 py-2 rounded-lg transition border border-slate-700">
+                <i class="fa-solid fa-rotate mr-1"></i>รีเฟรชข้อมูลระบบ
+              </button>
+            </div>
+          </div>
+
+          <!-- Admin Executive Cards -->
+          <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+              <p class="text-xs text-slate-500 font-medium">การยื่นผลงานรวมทั้งระบบ</p>
+              <h3 id="admin-kpi-total" class="text-2xl font-bold text-slate-800 mt-1">0</h3>
+            </div>
+            <div class="bg-amber-50 p-4 rounded-xl border border-amber-300 shadow-sm">
+              <p class="text-xs text-amber-800 font-bold">รอ Admin ดำเนินการอนุมัติ</p>
+              <h3 id="admin-kpi-pending" class="text-3xl font-extrabold text-amber-700 mt-1">0</h3>
+            </div>
+            <div class="bg-white p-4 rounded-xl border border-emerald-200 shadow-sm">
+              <p class="text-xs text-emerald-600 font-medium">อนุมัติแล้วเสร็จ</p>
+              <h3 id="admin-kpi-approved" class="text-2xl font-bold text-emerald-700 mt-1">0</h3>
+            </div>
+            <div class="bg-white p-4 rounded-xl border border-blue-200 shadow-sm">
+              <p class="text-xs text-blue-600 font-medium">งบประมาณโครงการวิจัยรวม</p>
+              <h3 id="admin-kpi-budget" class="text-2xl font-bold text-blue-700 mt-1">฿0</h3>
+            </div>
+          </div>
+
+          <!-- Admin System Analytics Charts -->
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
+              <h4 class="font-bold text-slate-700 text-sm mb-4"><i class="fa-solid fa-chart-donut mr-2 text-amber-500"></i>สถานะภาระงานภาพรวมทั้งองค์กร</h4>
+              <div class="h-64"><canvas id="adminStatusChart"></canvas></div>
+            </div>
+            <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
+              <h4 class="font-bold text-slate-700 text-sm mb-4"><i class="fa-solid fa-layer-group mr-2 text-indigo-500"></i>การกระจายตัวของงานแต่ละหมวด</h4>
+              <div class="h-64"><canvas id="adminModuleChart"></canvas></div>
+            </div>
           </div>
         </div>
+
       </section>
 
       <!-- DATA MODULE TABLE VIEW -->
@@ -166,16 +233,18 @@
     </div>
   </div>
 
-  <!-- JavaScript API Router -->
+  <!-- JavaScript API Router & Chart Handlers -->
   <script>
-    // ================================================================
-    // ใส่ Web App URL ที่ได้จากการ Deploy Google Apps Script ใน Step 1
-    // ================================================================
     const API_URL = "https://script.google.com/macros/s/AKfycbwQPuythEAg_buMCypnF3JMTgMCAW40JyiZXPklazarmrS5SitxQucGiqqOCtmZzmdz8w/exec";
 
     let currentUser = { email: localStorage.getItem('user_email') || 'user@msu.ac.th', isAdmin: false };
     let currentModule = 'dashboard';
-    let statusChartInstance = null;
+    
+    // Chart instances
+    let userStatusChartInstance = null;
+    let userModuleChartInstance = null;
+    let adminStatusChartInstance = null;
+    let adminModuleChartInstance = null;
 
     window.onload = function() {
       initUser();
@@ -187,14 +256,17 @@
         .then(user => {
           currentUser = user;
           localStorage.setItem('user_email', user.email);
+          
           document.getElementById('user-badge').innerText = `${user.email} (${user.isAdmin ? 'Admin' : 'User'})`;
+          document.getElementById('role-subtitle').innerText = user.isAdmin ? 'สิทธิ์การใช้งาน: ผู้ดูแลระบบ (Admin Reporting View)' : 'สิทธิ์การใช้งาน: บุคลากรทั่วไป (Personal Reporting View)';
+          
           loadDashboard();
         }).catch(err => Swal.fire('Error', 'ไม่สามารถเชื่อมต่อกับ Apps Script API ได้', 'error'));
     }
 
     function changeUserEmail() {
       Swal.fire({
-        title: 'ระบุ อีเมลผู้ใช้งาน',
+        title: 'สลับสิทธิ์ผู้ใช้งาน (Email)',
         input: 'email',
         inputValue: currentUser.email,
         showCancelButton: true,
@@ -216,7 +288,7 @@
       if (activeNavBtn) activeNavBtn.classList.add('active-tab');
 
       if (moduleName === 'dashboard') {
-        document.getElementById('view-title').innerText = 'Dashboard สรุปภาพรวม';
+        document.getElementById('view-title').innerText = 'รายงาน & Analytics';
         document.getElementById('view-dashboard').classList.remove('hidden');
         document.getElementById('view-module').classList.add('hidden');
         loadDashboard();
@@ -231,26 +303,110 @@
       fetch(`${API_URL}?action=getDashboardMetrics&email=${encodeURIComponent(currentUser.email)}`)
         .then(res => res.json())
         .then(metrics => {
-          document.getElementById('kpi-teaching').innerText = metrics.totalTeachingCredits;
-          document.getElementById('kpi-research').innerText = '฿' + metrics.totalResearchBudget.toLocaleString();
-          document.getElementById('kpi-culture').innerText = metrics.totalCultureProjects;
-          document.getElementById('kpi-services').innerText = metrics.totalAcademicServices;
-          document.getElementById('kpi-orgdev').innerText = metrics.totalOrgDevHours;
-          document.getElementById('kpi-academic').innerText = metrics.totalAcademicWorks;
-          renderChart(metrics.statusCounts);
+          if (currentUser.isAdmin) {
+            document.getElementById('report-user-container').classList.add('hidden');
+            document.getElementById('report-admin-container').classList.remove('hidden');
+            renderAdminDashboard(metrics);
+          } else {
+            document.getElementById('report-admin-container').classList.add('hidden');
+            document.getElementById('report-user-container').classList.remove('hidden');
+            document.getElementById('user-report-email-label').innerText = `บัญชีผู้ใช้: ${currentUser.email}`;
+            renderUserDashboard(metrics);
+          }
         });
     }
 
-    function renderChart(statusData) {
-      const ctx = document.getElementById('statusChart').getContext('2d');
-      if (statusChartInstance) statusChartInstance.destroy();
-      statusChartInstance = new Chart(ctx, {
+    // Render Dashboard สำหรับ User
+    function renderUserDashboard(metrics) {
+      const counts = metrics.statusCounts;
+      const total = counts.Approved + counts.Pending + counts.NeedsRevision + counts.Draft;
+
+      document.getElementById('user-kpi-total').innerText = total;
+      document.getElementById('user-kpi-approved').innerText = counts.Approved;
+      document.getElementById('user-kpi-pending').innerText = counts.Pending;
+      document.getElementById('user-kpi-revision').innerText = counts.NeedsRevision;
+
+      // User Status Pie Chart
+      const ctxStatus = document.getElementById('userStatusChart').getContext('2d');
+      if (userStatusChartInstance) userStatusChartInstance.destroy();
+      userStatusChartInstance = new Chart(ctxStatus, {
         type: 'doughnut',
         data: {
-          labels: ['อนุมัติแล้ว (Approved)', 'รอตรวจสอบ (Pending)', 'แก้ไข (Needs Revision)', 'ฉบับร่าง (Draft)'],
+          labels: ['อนุมัติแล้ว', 'รอตรวจสอบ', 'ส่งกลับแก้ไข', 'ฉบับร่าง'],
           datasets: [{
-            data: [statusData.Approved, statusData.Pending, statusData.NeedsRevision, statusData.Draft],
+            data: [counts.Approved, counts.Pending, counts.NeedsRevision, counts.Draft],
             backgroundColor: ['#10b981', '#f59e0b', '#ef4444', '#94a3b8']
+          }]
+        },
+        options: { responsive: true, maintainAspectRatio: false }
+      });
+
+      // User Workload Bar Chart
+      const ctxModule = document.getElementById('userModuleChart').getContext('2d');
+      if (userModuleChartInstance) userModuleChartInstance.destroy();
+      userModuleChartInstance = new Chart(ctxModule, {
+        type: 'bar',
+        data: {
+          labels: ['การสอน (หน่วยกิต)', 'ศิลปวัฒนธรรม (โครงการ)', 'บริการวิชาการ (โครงการ)', 'พัฒนาองค์กร (ชม.)', 'ผลงานวิชาการ (เรื่อง)'],
+          datasets: [{
+            label: 'จำนวนภาระงาน',
+            data: [
+              metrics.totalTeachingCredits,
+              metrics.totalCultureProjects,
+              metrics.totalAcademicServices,
+              metrics.totalOrgDevHours,
+              metrics.totalAcademicWorks
+            ],
+            backgroundColor: '#6366f1'
+          }]
+        },
+        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
+      });
+    }
+
+    // Render Dashboard สำหรับ Admin
+    function renderAdminDashboard(metrics) {
+      const counts = metrics.statusCounts;
+      const total = counts.Approved + counts.Pending + counts.NeedsRevision + counts.Draft;
+
+      document.getElementById('admin-kpi-total').innerText = total;
+      document.getElementById('admin-kpi-pending').innerText = counts.Pending;
+      document.getElementById('admin-kpi-approved').innerText = counts.Approved;
+      document.getElementById('admin-kpi-budget').innerText = '฿' + metrics.totalResearchBudget.toLocaleString();
+
+      // Admin Status Chart
+      const ctxStatus = document.getElementById('adminStatusChart').getContext('2d');
+      if (adminStatusChartInstance) adminStatusChartInstance.destroy();
+      adminStatusChartInstance = new Chart(ctxStatus, {
+        type: 'pie',
+        data: {
+          labels: ['อนุมัติแล้ว (Approved)', 'รอตรวจสอบ (Pending)', 'ต้องแก้ไข (Needs Revision)', 'ฉบับร่าง (Draft)'],
+          datasets: [{
+            data: [counts.Approved, counts.Pending, counts.NeedsRevision, counts.Draft],
+            backgroundColor: ['#10b981', '#f59e0b', '#ef4444', '#94a3b8']
+          }]
+        },
+        options: { responsive: true, maintainAspectRatio: false }
+      });
+
+      // Admin Category Chart
+      const ctxModule = document.getElementById('adminModuleChart').getContext('2d');
+      if (adminModuleChartInstance) adminModuleChartInstance.destroy();
+      adminModuleChartInstance = new Chart(ctxModule, {
+        type: 'bar',
+        data: {
+          labels: ['การสอน', 'วิจัย', 'ศิลปวัฒนธรรม', 'บริการวิชาการ', 'พัฒนาองค์กร', 'ผลงานวิชาการ'],
+          datasets: [{
+            label: 'รวมทั้งระบบ',
+            data: [
+              metrics.totalTeachingCredits,
+              metrics.totalResearchBudget > 0 ? 1 : 0,
+              metrics.totalCultureProjects,
+              metrics.totalAcademicServices,
+              metrics.totalOrgDevHours,
+              metrics.totalAcademicWorks
+            ],
+            backgroundColor: '#3b82f6'
           }]
         },
         options: { responsive: true, maintainAspectRatio: false }
@@ -377,7 +533,7 @@
       payload.action = action;
       fetch(API_URL, {
         method: 'POST',
-        headers: { 'Content-Type': 'text/plain;charset=utf-8' }, // ใช้ text/plain เพื่อป้องกัน CORS Preflight Issue ใน GAS
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
         body: JSON.stringify(payload)
       })
       .then(res => res.json())
