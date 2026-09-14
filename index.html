@@ -47,43 +47,7 @@
 
   <!-- Main Application Wrapper -->
   <div id="app-container" class="flex w-full h-full hidden">
-    <!-- Sidebar -->
-    function switchView(moduleName) {
-  currentModule = moduleName;
-
-  // แสดงปุ่ม "เพิ่มรายการใหม่" เฉพาะกรณีที่อยู่ในหมวดงานบันทึกข้อมูลเท่านั้น
-  const canAddRecord = currentUser && currentUser.inAdminUsersSheet && (moduleName !== 'dashboard' && moduleName !== 'report');
-  document.getElementById('btn-add-record').classList.toggle('hidden', !canAddRecord);
-
-  // เปลี่ยนสถานะ Tab ที่เลือก
-  document.querySelectorAll('nav button').forEach(btn => btn.classList.remove('active-tab'));
-  const activeNavBtn = document.getElementById(`nav-${moduleName}`);
-  if (activeNavBtn) activeNavBtn.classList.add('active-tab');
-
-  // ซ่อนทุก View
-  document.getElementById('view-dashboard').classList.add('hidden');
-  document.getElementById('view-module').classList.add('hidden');
-  document.getElementById('view-report').classList.add('hidden');
-
-  // แสดง View ตามที่กดเลือก
-  if (moduleName === 'dashboard') {
-    document.getElementById('view-title').innerText = 'รายงาน & Analytics';
-    document.getElementById('view-dashboard').classList.remove('hidden');
-    loadDashboard();
-  } else if (moduleName === 'report') {
-    document.getElementById('view-title').innerText = 'รายงานสรุปผลการดำเนินงาน (Executive Report)';
-    document.getElementById('view-report').classList.remove('hidden');
-    
-    // โหลดข้อมูลใน iframe ใหม่ทุกครั้งที่เปิดดู
-    const reportFrame = document.getElementById('report-frame');
-    if (reportFrame) {
-      reportFrame.src = reportFrame.src;
-    }
-  } else {
-    document.getElementById('view-module').classList.remove('hidden');
-    loadModuleData(moduleName);
-  }
-}
+    <!-- Sidebar -->   
     <aside class="w-64 bg-slate-900 text-white flex flex-col justify-between hidden md:flex">
       <div>
         <div class="p-6 border-b border-slate-800 flex items-center space-x-3">
