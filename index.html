@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+  <!DOCTYPE html>
 <html lang="th">
 <head>
   <meta charset="UTF-8">
@@ -92,7 +92,7 @@
       <!-- DASHBOARD & REPORT VIEW -->
       <section id="view-dashboard" class="space-y-6">
         
-        <!-- ==================== USER REPORT SECTION ==================== -->
+        <!-- USER REPORT SECTION -->
         <div id="report-user-container" class="space-y-6 hidden">
           <div class="bg-indigo-900 text-white p-6 rounded-2xl shadow-sm flex justify-between items-center">
             <div>
@@ -100,7 +100,7 @@
               <h3 class="text-2xl font-bold mt-2">รายงานสรุปผลงานส่วนบุคคล</h3>
               <p class="text-xs text-indigo-200 mt-1" id="user-report-email-label">แสดงข้อมูลเฉพาะการยื่นผลงานของคุณ</p>
             </div>
-            <div class="hidden sm:block text-right">
+            <div class="hidden sm:block">
               <button onclick="loadDashboard()" class="bg-white/10 hover:bg-white/20 text-white text-xs px-3 py-2 rounded-lg transition">
                 <i class="fa-solid fa-rotate mr-1"></i>อัปเดตข้อมูล
               </button>
@@ -140,7 +140,7 @@
           </div>
         </div>
 
-        <!-- ==================== ADMIN REPORT SECTION ==================== -->
+        <!-- ADMIN REPORT SECTION -->
         <div id="report-admin-container" class="space-y-6 hidden">
           <div class="bg-slate-900 text-white p-6 rounded-2xl shadow-sm flex justify-between items-center">
             <div>
@@ -178,7 +178,7 @@
           <!-- Admin System Analytics Charts -->
           <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
-              <h4 class="font-bold text-slate-700 text-sm mb-4"><i class="fa-solid fa-chart-donut mr-2 text-amber-500"></i>สถานะภาระงานภาพรวมทั้งองค์กร</h4>
+              <h4 class="font-bold text-slate-700 text-sm mb-4"><i class="fa-solid fa-chart-pie mr-2 text-amber-500"></i>สถานะภาระงานภาพรวมทั้งองค์กร</h4>
               <div class="h-64"><canvas id="adminStatusChart"></canvas></div>
             </div>
             <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
@@ -233,14 +233,16 @@
     </div>
   </div>
 
-  <!-- JavaScript API Router & Chart Handlers -->
+  <!-- JavaScript Application Script -->
   <script>
+    // ** เปลี่ยนเป็น Web App URL ของคุณที่ได้จากการ Deploy **
     const API_URL = "https://script.google.com/macros/s/AKfycbwQPuythEAg_buMCypnF3JMTgMCAW40JyiZXPklazarmrS5SitxQucGiqqOCtmZzmdz8w/exec";
 
     let currentUser = { email: localStorage.getItem('user_email') || 'user@msu.ac.th', isAdmin: false };
+    let adminPasswordSession = sessionStorage.getItem('admin_password') || '';
     let currentModule = 'dashboard';
     
-    // Chart instances
+    // Chart Instances
     let userStatusChartInstance = null;
     let userModuleChartInstance = null;
     let adminStatusChartInstance = null;
@@ -249,18 +251,62 @@
     window.onload = function() {
       initUser();
     };
-    function initUser() {
-      fetch(`${API_URL}?action=getUserRole&email=${encodeURIComponent(currentUser.email)}`)
+
+    function initUser(passwordPrompt = '') {
+      const passParam = passwordPrompt ? `&password=${encodeURIComponent(passwordPrompt)}` : (adminPasswordSession ? `&password=${encodeURIComponent(adminPasswordSession)}` : '');
+      
+      Swal.fire({ title: 'กำลังตรวจสอบสิทธิ์...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+
+      fetch(`${API_URL}?action=getUserRole&email=${encodeURIComponent(currentUser.email)}${passParam}`)
         .then(res => res.json())
         .then(user => {
+          Swal.close();
+          
+          if (user.isAdmin && !user.authenticated) {
+            promptAdminPassword(user.message);
+            return;
+          }
+
           currentUser = user;
           localStorage.setItem('user_email', user.email);
-          
+          if (passwordPrompt) {
+            adminPasswordSession = passwordPrompt;
+            sessionStorage.setItem('admin_password', passwordPrompt);
+          }
+
           document.getElementById('user-badge').innerText = `${user.email} (${user.isAdmin ? 'Admin' : 'User'})`;
-          document.getElementById('role-subtitle').innerText = user.isAdmin ? 'สิทธิ์การใช้งาน: ผู้ดูแลระบบ (Admin Reporting View)' : 'สิทธิ์การใช้งาน: บุคลากรทั่วไป (Personal Reporting View)';
+          document.getElementById('role-subtitle').innerText = user.isAdmin 
+            ? 'สิทธิ์การใช้งาน: ผู้ดูแลระบบ (Admin Reporting View)' 
+            : 'สิทธิ์การใช้งาน: บุคลากรทั่วไป (Personal Reporting View)';
           
           loadDashboard();
-        }).catch(err => Swal.fire('Error', 'ไม่สามารถเชื่อมต่อกับ Apps Script API ได้', 'error'));
+        })
+        .catch(err => Swal.fire('Error', 'ไม่สามารถเชื่อมต่อกับ Apps Script API ได้', 'error'));
+    }
+
+    function promptAdminPassword(errorMessage = '') {
+      Swal.fire({
+        title: 'ยืนยันรหัสผ่าน Admin',
+        text: errorMessage || `บัญชี ${currentUser.email} ต้องการรหัสผ่านเพื่อเข้าใช้งานสิทธิ์ Admin`,
+        input: 'password',
+        inputPlaceholder: 'กรอกรหัสผ่าน Admin',
+        showCancelButton: true,
+        confirmButtonText: 'เข้าสู่ระบบ',
+        cancelButtonText: 'สลับเป็น User ทั่วไป',
+        allowOutsideClick: false,
+        inputValidator: (value) => {
+          if (!value) return 'กรุณากรอกรหัสผ่าน!';
+        }
+      }).then((result) => {
+        if (result.isConfirmed && result.value) {
+          initUser(result.value);
+        } else {
+          sessionStorage.removeItem('admin_password');
+          adminPasswordSession = '';
+          currentUser.email = 'user@msu.ac.th';
+          initUser();
+        }
+      });
     }
 
     function changeUserEmail() {
@@ -269,9 +315,12 @@
         input: 'email',
         inputValue: currentUser.email,
         showCancelButton: true,
-        confirmButtonText: 'ตกลง'
+        confirmButtonText: 'ตกลง',
+        cancelButtonText: 'ยกเลิก'
       }).then((result) => {
         if (result.isConfirmed && result.value) {
+          sessionStorage.removeItem('admin_password');
+          adminPasswordSession = '';
           currentUser.email = result.value;
           initUser();
         }
@@ -315,7 +364,6 @@
         });
     }
 
-    // Render Dashboard สำหรับ User
     function renderUserDashboard(metrics) {
       const counts = metrics.statusCounts;
       const total = counts.Approved + counts.Pending + counts.NeedsRevision + counts.Draft;
@@ -325,7 +373,6 @@
       document.getElementById('user-kpi-pending').innerText = counts.Pending;
       document.getElementById('user-kpi-revision').innerText = counts.NeedsRevision;
 
-      // User Status Pie Chart
       const ctxStatus = document.getElementById('userStatusChart').getContext('2d');
       if (userStatusChartInstance) userStatusChartInstance.destroy();
       userStatusChartInstance = new Chart(ctxStatus, {
@@ -340,7 +387,6 @@
         options: { responsive: true, maintainAspectRatio: false }
       });
 
-      // User Workload Bar Chart
       const ctxModule = document.getElementById('userModuleChart').getContext('2d');
       if (userModuleChartInstance) userModuleChartInstance.destroy();
       userModuleChartInstance = new Chart(ctxModule, {
@@ -363,7 +409,6 @@
       });
     }
 
-    // Render Dashboard สำหรับ Admin
     function renderAdminDashboard(metrics) {
       const counts = metrics.statusCounts;
       const total = counts.Approved + counts.Pending + counts.NeedsRevision + counts.Draft;
@@ -373,13 +418,12 @@
       document.getElementById('admin-kpi-approved').innerText = counts.Approved;
       document.getElementById('admin-kpi-budget').innerText = '฿' + metrics.totalResearchBudget.toLocaleString();
 
-      // Admin Status Chart
       const ctxStatus = document.getElementById('adminStatusChart').getContext('2d');
       if (adminStatusChartInstance) adminStatusChartInstance.destroy();
       adminStatusChartInstance = new Chart(ctxStatus, {
         type: 'pie',
         data: {
-          labels: ['อนุมัติแล้ว (Approved)', 'รอตรวจสอบ (Pending)', 'ต้องแก้ไข (Needs Revision)', 'ฉบับร่าง (Draft)'],
+          labels: ['อนุมัติแล้ว', 'รอตรวจสอบ', 'ต้องแก้ไข', 'ฉบับร่าง'],
           datasets: [{
             data: [counts.Approved, counts.Pending, counts.NeedsRevision, counts.Draft],
             backgroundColor: ['#10b981', '#f59e0b', '#ef4444', '#94a3b8']
@@ -388,7 +432,6 @@
         options: { responsive: true, maintainAspectRatio: false }
       });
 
-      // Admin Category Chart
       const ctxModule = document.getElementById('adminModuleChart').getContext('2d');
       if (adminModuleChartInstance) adminModuleChartInstance.destroy();
       adminModuleChartInstance = new Chart(ctxModule, {
