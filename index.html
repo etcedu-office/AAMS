@@ -18,15 +18,19 @@
 </head>
 <body class="bg-slate-50 text-slate-800 flex h-screen overflow-hidden">
 
-  <!-- MODAL เข้าสู่ระบบ (LOGIN MODAL) -->
-  <div id="login-overlay" class="fixed inset-0 bg-slate-900/80 backdrop-blur-md flex justify-center items-center z-50">
-    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md p-8 space-y-6">
+  <!-- MODAL เข้าสู่ระบบ (LOGIN MODAL - เปิดเมื่อกดปุ่มเข้าสู่ระบบมุมขวาบน) -->
+  <div id="login-overlay" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm hidden flex justify-center items-center z-50">
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md p-8 space-y-6 relative">
+      <button onclick="closeLoginModal()" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600">
+        <i class="fa-solid fa-xmark text-xl"></i>
+      </button>
+
       <div class="text-center space-y-2">
         <div class="inline-flex p-3 bg-indigo-50 text-indigo-600 rounded-full mb-2">
           <i class="fa-solid fa-lock text-3xl"></i>
         </div>
         <h2 class="text-2xl font-bold text-slate-800">เข้าสู่ระบบ FATS</h2>
-        <p class="text-xs text-slate-500">กรุณากรอก Email และ Password เพื่อเข้าใช้งาน</p>
+        <p class="text-xs text-slate-500">กรุณากรอก Email และ Password เพื่อเข้าใช้งานระบบ</p>
       </div>
 
       <form id="login-form" onsubmit="handleLogin(event)" class="space-y-4">
@@ -45,9 +49,9 @@
     </div>
   </div>
 
-  <!-- Main Application Wrapper -->
-  <div id="app-container" class="flex w-full h-full hidden">
-    <!-- Sidebar -->   
+  <!-- Main Application Container -->
+  <div id="app-container" class="flex w-full h-full">
+    <!-- Sidebar -->
     <aside class="w-64 bg-slate-900 text-white flex flex-col justify-between hidden md:flex">
       <div>
         <div class="p-6 border-b border-slate-800 flex items-center space-x-3">
@@ -61,6 +65,10 @@
           <button onclick="switchView('dashboard')" class="w-full flex items-center space-x-3 px-4 py-3 rounded-lg hover:bg-slate-800 transition active-tab" id="nav-dashboard">
             <i class="fa-solid fa-chart-pie w-5 text-indigo-400"></i><span>รายงาน & Dashboard</span>
           </button>
+          <button onclick="switchView('report')" class="w-full flex items-center space-x-3 px-4 py-3 rounded-lg hover:bg-slate-800 transition" id="nav-report">
+            <i class="fa-solid fa-file-invoice w-5 text-indigo-400"></i><span>รายงานสรุป (Report)</span>
+          </button>
+          <hr class="border-slate-800 my-2">
           <button onclick="switchView('Teaching_Data')" class="w-full flex items-center space-x-3 px-4 py-3 rounded-lg hover:bg-slate-800 transition" id="nav-Teaching_Data">
             <i class="fa-solid fa-chalkboard-user w-5 text-indigo-400"></i><span>ภาระการสอน</span>
           </button>
@@ -86,52 +94,45 @@
       </div>
     </aside>
 
-    <!-- Main Content -->
+    <!-- Main Content Area -->
     <main class="flex-1 flex flex-col h-screen overflow-y-auto">
       <header class="bg-white border-b border-slate-200 px-6 py-4 flex justify-between items-center sticky top-0 z-10">
         <div>
           <h2 id="view-title" class="text-xl font-bold text-slate-800">รายงาน & Analytics</h2>
-          <p id="role-subtitle" class="text-xs text-slate-500">กำลังโหลด...</p>
+          <p id="role-subtitle" class="text-xs text-slate-500">โหมดมุมมองสาธารณะ / ผู้เยี่ยมชม</p>
         </div>
+        
+        <!-- Controls ด้านขวาบน -->
         <div class="flex items-center space-x-3">
-          <!-- ปุ่มเพิ่มรายงานใหม่ (แสดงผลเฉพาะผู้ที่มีชื่อใน Admin_Users) -->
+          <!-- ปุ่มเพิ่มรายงานใหม่ (แสดงเมื่อสิทธิ์ Admin_Users เท่านั้น) -->
           <button id="btn-add-record" onclick="openModal()" class="hidden bg-indigo-600 hover:bg-indigo-700 text-white text-sm px-4 py-2 rounded-lg font-medium transition flex items-center space-x-2">
             <i class="fa-solid fa-plus"></i><span>เพิ่มรายการใหม่</span>
           </button>
-          <span id="user-badge" class="bg-indigo-50 text-indigo-700 px-3 py-1.5 rounded-full text-xs font-semibold border border-indigo-200">
-            User
-          </span>
-          <button onclick="logout()" class="text-xs text-rose-600 hover:text-rose-800 font-semibold px-2 py-1">
-            <i class="fa-solid fa-right-from-bracket mr-1"></i>ออกจากระบบ
+
+          <!-- ปุ่มเข้าสู่ระบบ (แสดงเมื่อยังไม่ได้ล็อกอิน) -->
+          <button id="btn-login" onclick="openLoginModal()" class="bg-indigo-600 hover:bg-indigo-700 text-white text-sm px-4 py-2 rounded-lg font-semibold transition flex items-center space-x-2 shadow-sm">
+            <i class="fa-solid fa-right-to-bracket"></i><span>เข้าสู่ระบบ</span>
           </button>
+
+          <!-- บล็อกข้อมูลผู้ใช้และปุ่มออกจากระบบ (แสดงเมื่อเข้าสู่ระบบแล้ว) -->
+          <div id="user-info-box" class="hidden flex items-center space-x-3">
+            <span id="user-badge" class="bg-indigo-50 text-indigo-700 px-3 py-1.5 rounded-full text-xs font-semibold border border-indigo-200">
+              User
+            </span>
+            <button onclick="logout()" class="text-xs text-rose-600 hover:text-rose-800 font-semibold px-2 py-1">
+              <i class="fa-solid fa-right-from-bracket mr-1"></i>ออกจากระบบ
+            </button>
+          </div>
         </div>
       </header>
 
       <div class="p-6 space-y-6 flex-1">
         <!-- Dashboard View -->
         <section id="view-dashboard" class="space-y-6">
-          <div id="report-user-container" class="space-y-6 hidden">
-            <div class="bg-indigo-900 text-white p-6 rounded-2xl shadow-sm">
-              <span class="bg-indigo-700 text-indigo-100 text-xs px-3 py-1 rounded-full font-medium">Personal Report</span>
-              <h3 class="text-2xl font-bold mt-2">รายงานสรุปผลงานส่วนบุคคล</h3>
-              <p class="text-xs text-indigo-200 mt-1" id="user-report-email-label"></p>
-            </div>
-            <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <div class="bg-white p-4 rounded-xl border border-slate-200"><p class="text-xs text-slate-500">รวมทั้งหมด</p><h3 id="user-kpi-total" class="text-2xl font-bold mt-1">0</h3></div>
-              <div class="bg-white p-4 rounded-xl border border-emerald-200"><p class="text-xs text-emerald-600">อนุมัติเรียบร้อย</p><h3 id="user-kpi-approved" class="text-2xl font-bold text-emerald-700 mt-1">0</h3></div>
-              <div class="bg-white p-4 rounded-xl border border-amber-200"><p class="text-xs text-amber-600">รอตรวจสอบ</p><h3 id="user-kpi-pending" class="text-2xl font-bold text-amber-700 mt-1">0</h3></div>
-              <div class="bg-white p-4 rounded-xl border border-rose-200"><p class="text-xs text-rose-600">ต้องแก้ไข</p><h3 id="user-kpi-revision" class="text-2xl font-bold text-rose-700 mt-1">0</h3></div>
-            </div>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div class="bg-white p-5 rounded-xl border border-slate-200"><h4 class="font-bold text-xs mb-4">สัดส่วนสถานะ</h4><div class="h-64"><canvas id="userStatusChart"></canvas></div></div>
-              <div class="bg-white p-5 rounded-xl border border-slate-200"><h4 class="font-bold text-xs mb-4">ภาระงานแต่ละหมวด</h4><div class="h-64"><canvas id="userModuleChart"></canvas></div></div>
-            </div>
-          </div>
-
-          <div id="report-admin-container" class="space-y-6 hidden">
+          <div id="report-admin-container" class="space-y-6">
             <div class="bg-slate-900 text-white p-6 rounded-2xl shadow-sm">
               <span class="bg-amber-500 text-slate-900 text-xs px-3 py-1 rounded-full font-bold">Executive Dashboard</span>
-              <h3 class="text-2xl font-bold mt-2">รายงานสรุปผู้ดูแลระบบ</h3>
+              <h3 class="text-2xl font-bold mt-2">รายงานสรุปภาพรวมระบบ</h3>
             </div>
             <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
               <div class="bg-white p-4 rounded-xl border border-slate-200"><p class="text-xs text-slate-500">ยื่นรวมทั้งระบบ</p><h3 id="admin-kpi-total" class="text-2xl font-bold mt-1">0</h3></div>
@@ -144,6 +145,11 @@
               <div class="bg-white p-5 rounded-xl border border-slate-200"><h4 class="font-bold text-xs mb-4">การกระจายตัวของงาน</h4><div class="h-64"><canvas id="adminModuleChart"></canvas></div></div>
             </div>
           </div>
+        </section>
+
+        <!-- Report View (iframe) -->
+        <section id="view-report" class="hidden w-full h-full pb-6">
+          <iframe id="report-frame" src="report.html" class="w-full h-[82vh] rounded-xl border border-slate-200 bg-white shadow-sm"></iframe>
         </section>
 
         <!-- Module Table View -->
@@ -187,7 +193,19 @@
     const API_URL = "https://script.google.com/macros/s/AKfycbwQPuythEAg_buMCypnF3JMTgMCAW40JyiZXPklazarmrS5SitxQucGiqqOCtmZzmdz8w/exec";
     let currentUser = null;
     let currentModule = 'dashboard';
-    let userStatusChartInstance, userModuleChartInstance, adminStatusChartInstance, adminModuleChartInstance;
+    let adminStatusChartInstance, adminModuleChartInstance;
+
+    document.addEventListener('DOMContentLoaded', () => {
+      loadDashboard();
+    });
+
+    function openLoginModal() {
+      document.getElementById('login-overlay').classList.remove('hidden');
+    }
+
+    function closeLoginModal() {
+      document.getElementById('login-overlay').classList.add('hidden');
+    }
 
     function handleLogin(e) {
       e.preventDefault();
@@ -202,95 +220,67 @@
           Swal.close();
           if (res.success) {
             currentUser = res;
-            document.getElementById('login-overlay').classList.add('hidden');
-            document.getElementById('app-container').classList.remove('hidden');
+            closeLoginModal();
             
+            // อัปเดตปุ่มมุมขวาบน
+            document.getElementById('btn-login').classList.add('hidden');
+            document.getElementById('user-info-box').classList.remove('hidden');
             document.getElementById('user-badge').innerText = `${res.name} (${res.isAdmin ? 'Admin' : 'User'})`;
-            document.getElementById('role-subtitle').innerText = res.isAdmin ? 'สิทธิ์การใช้งาน: ผู้ดูแลระบบ' : 'สิทธิ์การใช้งาน: ผู้ใช้งานทั่วไป';
+            document.getElementById('role-subtitle').innerText = res.isAdmin ? 'สิทธิ์การใช้งาน: ผู้ดูแลระบบ' : `เข้าใช้งานโดย: ${res.email}`;
             
-            loadDashboard();
+            switchView(currentModule);
           } else {
             Swal.fire('เข้าสู่ระบบไม่สำเร็จ', res.message || 'Email หรือ Password ไม่ถูกต้อง', 'error');
           }
         })
-        .catch(() => Swal.fire('Error', 'ไม่สามารถ เชื่อมต่อระบบได้', 'error'));
+        .catch(() => Swal.fire('Error', 'ไม่สามารถเชื่อมต่อระบบได้', 'error'));
     }
 
     function logout() {
       currentUser = null;
-      document.getElementById('app-container').classList.add('hidden');
-      document.getElementById('login-overlay').classList.remove('hidden');
-      document.getElementById('login-form').reset();
+      document.getElementById('btn-login').classList.remove('hidden');
+      document.getElementById('user-info-box').classList.add('hidden');
+      document.getElementById('btn-add-record').classList.add('hidden');
+      document.getElementById('role-subtitle').innerText = 'โหมดมุมมองสาธารณะ / ผู้เยี่ยมชม';
+      switchView('dashboard');
     }
 
     function switchView(moduleName) {
       currentModule = moduleName;
 
-      // แสดงปุ่ม "เพิ่มรายการใหม่" เฉพาะกรณีที่อยู่ในหมวดงาน และเป็นผู้ที่อยู่ใน Admin_Users เท่านั้น
-      const canAddRecord = currentUser && currentUser.inAdminUsersSheet && moduleName !== 'dashboard';
+      // แสดงปุ่ม "เพิ่มรายการใหม่" เฉพาะกรณีที่ล็อกอิน มีสิทธิ์ Admin_Users และอยู่ในหมวดงานบันทึกข้อมูล
+      const canAddRecord = currentUser && currentUser.inAdminUsersSheet && (moduleName !== 'dashboard' && moduleName !== 'report');
       document.getElementById('btn-add-record').classList.toggle('hidden', !canAddRecord);
 
       document.querySelectorAll('nav button').forEach(btn => btn.classList.remove('active-tab'));
       const activeNavBtn = document.getElementById(`nav-${moduleName}`);
       if (activeNavBtn) activeNavBtn.classList.add('active-tab');
 
+      // ซ่อน View ทั้งหมด
+      document.getElementById('view-dashboard').classList.add('hidden');
+      document.getElementById('view-report').classList.add('hidden');
+      document.getElementById('view-module').classList.add('hidden');
+
       if (moduleName === 'dashboard') {
         document.getElementById('view-title').innerText = 'รายงาน & Analytics';
         document.getElementById('view-dashboard').classList.remove('hidden');
-        document.getElementById('view-module').classList.add('hidden');
         loadDashboard();
+      } else if (moduleName === 'report') {
+        document.getElementById('view-title').innerText = 'รายงานสรุปผลการดำเนินงาน (Executive Report)';
+        document.getElementById('view-report').classList.remove('hidden');
+        const iframe = document.getElementById('report-frame');
+        if (iframe) iframe.src = iframe.src; // รีโหลดข้อมูลใน iframe
       } else {
-        document.getElementById('view-dashboard').classList.add('hidden');
         document.getElementById('view-module').classList.remove('hidden');
         loadModuleData(moduleName);
       }
     }
 
     function loadDashboard() {
-      fetch(`${API_URL}?action=getDashboardMetrics&email=${encodeURIComponent(currentUser.email)}`)
+      const emailParam = currentUser ? currentUser.email : '';
+      fetch(`${API_URL}?action=getDashboardMetrics&email=${encodeURIComponent(emailParam)}`)
         .then(res => res.json())
-        .then(metrics => {
-          if (currentUser.isAdmin) {
-            document.getElementById('report-user-container').classList.add('hidden');
-            document.getElementById('report-admin-container').classList.remove('hidden');
-            renderAdminDashboard(metrics);
-          } else {
-            document.getElementById('report-admin-container').classList.add('hidden');
-            document.getElementById('report-user-container').classList.remove('hidden');
-            document.getElementById('user-report-email-label').innerText = `บัญชีผู้ใช้: ${currentUser.email}`;
-            renderUserDashboard(metrics);
-          }
-        });
-    }
-
-    function renderUserDashboard(metrics) {
-      const counts = metrics.statusCounts;
-      document.getElementById('user-kpi-total').innerText = counts.Approved + counts.Pending + counts.NeedsRevision + counts.Draft;
-      document.getElementById('user-kpi-approved').innerText = counts.Approved;
-      document.getElementById('user-kpi-pending').innerText = counts.Pending;
-      document.getElementById('user-kpi-revision').innerText = counts.NeedsRevision;
-
-      const ctxStatus = document.getElementById('userStatusChart').getContext('2d');
-      if (userStatusChartInstance) userStatusChartInstance.destroy();
-      userStatusChartInstance = new Chart(ctxStatus, {
-        type: 'doughnut',
-        data: {
-          labels: ['อนุมัติแล้ว', 'รอตรวจสอบ', 'ส่งกลับแก้ไข', 'ฉบับร่าง'],
-          datasets: [{ data: [counts.Approved, counts.Pending, counts.NeedsRevision, counts.Draft], backgroundColor: ['#10b981', '#f59e0b', '#ef4444', '#94a3b8'] }]
-        },
-        options: { responsive: true, maintainAspectRatio: false }
-      });
-
-      const ctxModule = document.getElementById('userModuleChart').getContext('2d');
-      if (userModuleChartInstance) userModuleChartInstance.destroy();
-      userModuleChartInstance = new Chart(ctxModule, {
-        type: 'bar',
-        data: {
-          labels: ['การสอน', 'ศิลปวัฒนธรรม', 'บริการวิชาการ', 'พัฒนาองค์กร', 'ผลงานวิชาการ'],
-          datasets: [{ label: 'จำนวน', data: [metrics.totalTeachingCredits, metrics.totalCultureProjects, metrics.totalAcademicServices, metrics.totalOrgDevHours, metrics.totalAcademicWorks], backgroundColor: '#6366f1' }]
-        },
-        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
-      });
+        .then(metrics => renderAdminDashboard(metrics));
     }
 
     function renderAdminDashboard(metrics) {
@@ -298,7 +288,7 @@
       document.getElementById('admin-kpi-total').innerText = counts.Approved + counts.Pending + counts.NeedsRevision + counts.Draft;
       document.getElementById('admin-kpi-pending').innerText = counts.Pending;
       document.getElementById('admin-kpi-approved').innerText = counts.Approved;
-      document.getElementById('admin-kpi-budget').innerText = '฿' + metrics.totalResearchBudget.toLocaleString();
+      document.getElementById('admin-kpi-budget').innerText = '฿' + (metrics.totalResearchBudget || 0).toLocaleString();
 
       const ctxStatus = document.getElementById('adminStatusChart').getContext('2d');
       if (adminStatusChartInstance) adminStatusChartInstance.destroy();
@@ -327,7 +317,8 @@
       const titles = { 'Teaching_Data': 'ภาระการสอน', 'Research_Data': 'โครงการวิจัย', 'Culture_Data': 'ทำนุบำรุงศิลปวัฒนธรรม', 'AcademicService_Data': 'บริการวิชาการ', 'OrgDev_Data': 'การพัฒนาองค์กร', 'Academic_Data': 'ผลงานทางวิชาการ' };
       document.getElementById('view-title').innerText = titles[moduleName] || 'จัดการข้อมูล';
 
-      fetch(`${API_URL}?action=getDataByModule&moduleName=${moduleName}&email=${encodeURIComponent(currentUser.email)}`)
+      const userEmail = currentUser ? currentUser.email : '';
+      fetch(`${API_URL}?action=getDataByModule&moduleName=${moduleName}&email=${encodeURIComponent(userEmail)}`)
         .then(res => res.json())
         .then(data => renderTable(moduleName, data));
     }
@@ -345,8 +336,8 @@
 
       tbody.innerHTML = data.map(item => {
         const title = item.SubjectName || item.ProjectTitle || item.ActivityName || item.Title || '-';
-        const isOwner = item.UserEmail === currentUser.email;
-        const canEdit = currentUser.isAdmin || isOwner;
+        const isOwner = currentUser && item.UserEmail === currentUser.email;
+        const canEdit = currentUser && (currentUser.isAdmin || isOwner);
 
         return `
           <tr class="hover:bg-slate-50">
@@ -357,7 +348,7 @@
             <td class="p-4 space-x-2">
               ${canEdit ? `<button onclick='editRecord(${JSON.stringify(item)})' class="text-blue-600 hover:text-blue-800"><i class="fa-solid fa-pen-to-square"></i></button>` : ''}
               ${canEdit ? `<button onclick="deleteRecord('${item.ID}')" class="text-red-600 hover:text-red-800"><i class="fa-solid fa-trash"></i></button>` : ''}
-              ${currentUser.isAdmin ? `<button onclick="approveRecord('${item.ID}')" class="text-emerald-600 hover:text-emerald-800"><i class="fa-solid fa-check-double"></i></button>` : ''}
+              ${currentUser && currentUser.isAdmin ? `<button onclick="approveRecord('${item.ID}')" class="text-emerald-600 hover:text-emerald-800"><i class="fa-solid fa-check-double"></i></button>` : ''}
             </td>
           </tr>
         `;
@@ -375,6 +366,7 @@
     }
 
     function openModal(data = null) {
+      if (!currentUser) { openLoginModal(); return; }
       document.getElementById('data-modal').classList.remove('hidden');
       document.getElementById('form-id').value = data ? data.ID : '';
       renderFormFields(currentModule, data || {});
@@ -414,6 +406,8 @@
 
     function handleFormSubmit(e) {
       e.preventDefault();
+      if (!currentUser) { openLoginModal(); return; }
+
       const formData = Object.fromEntries(new FormData(e.target));
       const fileInput = document.getElementById('form-file');
 
@@ -453,11 +447,13 @@
     function editRecord(item) { openModal(item); }
 
     function deleteRecord(id) {
+      if (!currentUser) return;
       Swal.fire({ title: 'ยืนยันการลบ?', text: 'คุณต้องการลบรายการนี้หรือไม่', icon: 'warning', showCancelButton: true, confirmButtonText: 'ลบข้อมูล' })
         .then(res => { if (res.isConfirmed) sendPostRequest('deleteRecord', { moduleName: currentModule, recordId: id, userEmail: currentUser.email }); });
     }
 
     function approveRecord(id) {
+      if (!currentUser || !currentUser.isAdmin) return;
       Swal.fire({
         title: 'อนุมัติ / แก้ไขสถานะ',
         input: 'select',
