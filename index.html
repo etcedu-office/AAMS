@@ -249,7 +249,6 @@
     window.onload = function() {
       initUser();
     };
-
     function initUser() {
       fetch(`${API_URL}?action=getUserRole&email=${encodeURIComponent(currentUser.email)}`)
         .then(res => res.json())
